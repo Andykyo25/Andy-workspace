@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Test') {
+            steps {
+                sh 'echo "testing"'
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                sh 'echo "deploying"'
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '所有命令执行成功！'
+        }
+        failure {
+            echo '命令执行失败！请检查日志以获取更多信息。'
+        }
+    }
+}
