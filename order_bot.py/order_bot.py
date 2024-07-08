@@ -9,7 +9,8 @@ TOKEN = "MTI1OTc2MDkyNTgwMDQwMjk2NA.Gi-ZFe.bAiun25MtuIV8PaFRS9lKF-IBrbka7xGjStml
 
 # 設置機器人意圖
 intents = discord.Intents.default()
-intents.messages = True  # 啟用接收消息的意圖
+intents.messages = True
+intents.message_content = True  # 新版discord.py需要顯式設置這個意圖
 
 # 初始化機器人
 bot = commands.Bot(command_prefix=BOT_PREFIX, intents=intents)
@@ -37,6 +38,11 @@ class Order:
             "product": self.product,
             "quantity": self.quantity
         }
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
 
 # 添加訂單指令
 @bot.command(name="add_order")
