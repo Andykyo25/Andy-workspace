@@ -76,5 +76,18 @@ async def list_orders(ctx):
     order_list = "\n".join([f"訂單ID: {o['order_id']}, 用戶: {o['user']}, 產品: {o['product']}, 數量: {o['quantity']}" for o in orders])
     await ctx.send(f"訂單列表：\n{order_list}")
 
+# 刪除訂單指令
+@bot.command(name="delete_order")
+async def delete_order(ctx, order_id: str):
+    with open(ORDER_FILE, 'r') as f:
+        orders = json.load(f)
+
+    orders = [order for order in orders if order['order_id'] != order_id]
+
+    with open(ORDER_FILE, 'w') as f:
+        json.dump(orders, f, indent=4)
+
+    await ctx.send(f"訂單ID: {order_id} 已刪除（如果存在）。")
+
 # 啟動機器人
 bot.run(TOKEN)
