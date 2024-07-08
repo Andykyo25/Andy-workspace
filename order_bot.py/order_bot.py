@@ -17,26 +17,33 @@ bot = commands.Bot(command_prefix=BOT_PREFIX, intents=intents)
 
 # 訂單文件
 ORDER_FILE = "orders.json"
+IMAGE_FOLDER = "order_images"
 
 # 檢查訂單文件是否存在，如果不存在則創建
 if not os.path.exists(ORDER_FILE):
     with open(ORDER_FILE, 'w') as f:
         json.dump([], f)
 
+# 檢查圖片文件夾是否存在，如果不存在則創建
+if not os.path.exists(IMAGE_FOLDER):
+    os.makedirs(IMAGE_FOLDER)
+
 # 訂單數據結構
 class Order:
-    def __init__(self, order_id, user, product, quantity):
+    def __init__(self, order_id, user, product, quantity, image_url=None):
         self.order_id = order_id
         self.user = user
         self.product = product
         self.quantity = quantity
+        self.image_url = image_url
 
     def to_dict(self):
         return {
             "order_id": self.order_id,
             "user": self.user,
             "product": self.product,
-            "quantity": self.quantity
+            "quantity": self.quantity,
+            "image_url": self.image_url
         }
 
 @bot.event
@@ -48,7 +55,16 @@ async def on_ready():
 @bot.command(name="add_order")
 async def add_order(ctx, order_id: str, product: str, quantity: int):
     user = ctx.author.name
-    new_order = Order(order_id, user, product, quantity)
+    attachment_url = None
+
+    # 檢查是否有附加圖片
+    if ctx.message.attachments:
+        attachment = ctx.message.attachments[0]
+        file_path = os.path.join(IMAGE_FOLDER, f"{order_id}_{attachment.filename}")
+        await attachment.save(file_path)
+        attachment_url = file_path
+
+    new_order = Order(order_id, user, product, quantity, attachment_url)
 
     # 讀取現有訂單
     with open(ORDER_FILE, 'r') as f:
@@ -61,7 +77,7 @@ async def add_order(ctx, order_id: str, product: str, quantity: int):
     with open(ORDER_FILE, 'w') as f:
         json.dump(orders, f, indent=4)
 
-    await ctx.send(f"訂單已添加：\n訂單ID: {order_id}\n產品: {product}\n數量: {quantity}")
+    await ctx.send(f"訂單已添加：\n訂單ID: {order_id}\n產品: {product}\n數量: {quantity}\n圖片: {attachment_url if attachment_url else '無'}")
 
 # 查詢訂單指令
 @bot.command(name="list_orders")
@@ -73,7 +89,10 @@ async def list_orders(ctx):
         await ctx.send("目前沒有訂單。")
         return
 
-    order_list = "\n".join([f"訂單ID: {o['order_id']}, 用戶: {o['user']}, 產品: {o['product']}, 數量: {o['quantity']}" for o in orders])
+    order_list = "\n".join([
+        f"訂單ID: {o['order_id']}, 用戶: {o['user']}, 產品: {o['product']}, 數量: {o['quantity']}, 圖片: {o['image_url'] if o['image_url'] else '無'}"
+        for o in orders
+    ])
     await ctx.send(f"訂單列表：\n{order_list}")
 
 # 刪除訂單指令
@@ -86,6 +105,11 @@ async def delete_order(ctx, order_id: str):
 
     with open(ORDER_FILE, 'w') as f:
         json.dump(orders, f, indent=4)
+
+    # 刪除相關圖片文件
+    image_files = [f for f in os.listdir(IMAGE_FOLDER) if f.startswith(order_id)]
+    for image_file in image_files:
+        os.remove(os.path.join(IMAGE_FOLDER, image_file))
 
     await ctx.send(f"訂單ID: {order_id} 已刪除（如果存在）。")
 
