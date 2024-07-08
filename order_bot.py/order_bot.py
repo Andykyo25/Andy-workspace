@@ -12,7 +12,7 @@ intents = discord.Intents.default()
 intents.messages = True  # 啟用接收消息的意圖
 
 # 初始化機器人
-bot = commands.Bot(command_prefix=BOT_PREFIX)
+bot = commands.Bot(command_prefix=BOT_PREFIX, intents=intents)
 
 # 訂單文件
 ORDER_FILE = "orders.json"
