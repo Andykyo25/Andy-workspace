@@ -88,6 +88,7 @@ dev-test:
   rules:
     - if: $CI_MERGE_REQUEST_LABELS == 'ws-k8s-dev' && $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
+    - sleep 60
     - cd ./ws-dev-k8s-spring
     - bash unit-test.sh dev-k8s
     - echo "✅ 開發環境測試完成"
@@ -140,6 +141,7 @@ sit-test:
     FOLDER_NAME: "aws-mix-sit-spring"
     DEPLOY_PARAM: "sit-eks"
   script:
+    - sleep 60
     - echo "🧪 測試環境 $ENV_NAME"
     - cd ./$FOLDER_NAME
     - bash unit-test.sh $DEPLOY_PARAM $CI_COMMIT_TAG
@@ -191,6 +193,7 @@ uat-test:
     FOLDER_NAME: "aws-mix-uat-spring"
     DEPLOY_PARAM: "uat-eks"
   script:
+    - sleep 60
     - echo "🧪 測試環境 $ENV_NAME"
     - cd ./$FOLDER_NAME
     - bash unit-test.sh $DEPLOY_PARAM $CI_COMMIT_TAG
@@ -242,6 +245,7 @@ demo-test:
     FOLDER_NAME: "aws-mix-demo-spring"
     DEPLOY_PARAM: "demo-eks"
   script:
+    - sleep 60
     - echo "🧪 測試環境 $ENV_NAME"
     - cd ./$FOLDER_NAME
     - bash unit-test.sh $DEPLOY_PARAM $CI_COMMIT_TAG
@@ -293,6 +297,7 @@ prd-test:
     FOLDER_NAME: "aws-prd-eks-spring"
     DEPLOY_PARAM: "sit-k8s"
   script:
+    - sleep 60
     - echo "🧪 測試環境 $ENV_NAME"
     - cd ./$FOLDER_NAME
     - bash unit-test.sh $DEPLOY_PARAM $CI_COMMIT_TAG
