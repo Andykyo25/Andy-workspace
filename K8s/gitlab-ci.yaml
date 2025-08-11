@@ -31,7 +31,7 @@ dev-k8s-build:
     - echo $version
     - echo "VERSION=$version" > build.env
     - cd ./ws-dev-k8s-spring
-    - bash ../spring/build.sh dev $version
+    - bash build.sh ws-k8s-dev $version
     - echo "k8s-dev build"
   artifacts:
     paths:
@@ -89,7 +89,7 @@ dev-k8s-deploy:
   script:
     - echo "VERSION:" $VERSION
     - cd ./ws-dev-k8s-spring
-    - bash ../spring/deploy.sh dev-k8s $VERSION
+    - bash deploy.sh dev-k8s $VERSION
     - echo "k8s-dev deploy"
   needs:
     - dev-k8s-build
