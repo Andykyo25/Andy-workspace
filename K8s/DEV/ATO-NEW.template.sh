@@ -70,13 +70,10 @@ deploy:
   debugMode: false
   containerLogPath: /home/veriid/log
   logPath: /data/log/${IMAGE_NAME}
-  resources:
-    limits:
-      cpu: "4"
-      memory: 4Gi
-    requests:
-      cpu: 500m
-      memory: 1Gi
+  limits:
+    memory: 4Gi
+  requests:
+    memory: 1Gi
   liveness:
     scope:
       - dev1
