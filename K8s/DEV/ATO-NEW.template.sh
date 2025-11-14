@@ -91,16 +91,16 @@ deploy:
     url: ${URL:-/}
     port: 8080
     failureThreshold: 3
-    initDelaySeconds: 60
-    periodSeconds: 60
-    timeoutSeconds: 10
+    initDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
   startup:
     scope:
       - dev1
     type: l7
     url: ${URL1:-/}
     port: 80
-    failureThreshold: 5
+    failureThreshold: 10
     initDelaySeconds: 120
     periodSeconds: 120
     timeoutSeconds: 10
