@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代購明細統計系統</title>
+    <!-- Tailwind CSS (UI設計) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js (圖表) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Vue.js 3 (邏輯) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .form-input {
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+        }
+    </style>
+</head>
+<body class="text-gray-700">
+
+<div id="app" class="min-h-screen p-4 md:p-8">
+
+    <!-- Header & Controls -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-indigo-600 tracking-tight">代購明細統計系統</h1>
+            <p class="text-gray-500 text-sm mt-1">智慧分析與庫存管理</p>
+        </div>
+        <div class="flex gap-3">
+            <button @click="triggerFileInput" class="bg-white text-indigo-600 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-indigo-100 flex items-center gap-2">
+                📂 匯入數據
+            </button>
+            <input type="file" ref="fileInput" class="hidden" @change="importData" accept=".json">
+            
+            <button @click="exportData" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-indigo-100 flex items-center gap-2">
+                💾 匯出備份
+            </button>
+            <button @click="clearAll" class="bg-red-50 text-red-500 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-red-100">
+                🗑️ 清除所有
+            </button>
+        </div>
+    </header>
+
+    <!-- Dashboard Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+            <div class="text-gray-400 text-sm font-medium mb-1">總營業額 (報價總計)</div>
+            <div class="text-3xl font-bold text-gray-800">{{ formatCurrency(totalRevenue) }}</div>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+            <div class="text-gray-400 text-sm font-medium mb-1">預估總利潤</div>
+            <div class="text-3xl font-bold text-emerald-600">{{ formatCurrency(totalProfit) }}</div>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-orange-400">
+            <div class="text-gray-400 text-sm font-medium mb-1">總訂單數</div>
+            <div class="text-3xl font-bold text-gray-800">{{ items.length }} <span class="text-sm font-normal text-gray-400">筆</span></div>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-rose-500">
+            <div class="text-gray-400 text-sm font-medium mb-1">未繳清款項</div>
+            <div class="text-3xl font-bold text-rose-500">{{ unpaidCount }} <span class="text-sm font-normal text-gray-400">筆</span></div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div class="glass-panel p-6 rounded-2xl shadow-lg bg-white">
+            <h3 class="text-lg font-bold text-gray-700 mb-4">品牌銷售佔比</h3>
+            <div class="relative h-64">
+                <canvas id="brandChart"></canvas>
+            </div>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl shadow-lg bg-white">
+            <h3 class="text-lg font-bold text-gray-700 mb-4">月度銷售利潤趨勢</h3>
+            <div class="relative h-64">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Form -->
+    <div class="glass-panel p-6 rounded-2xl shadow-lg mb-8 bg-white">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h2 class="text-xl font-bold text-indigo-700">新增訂單</h2>
+            <button @click="addItem" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2 rounded-full shadow-lg transform active:scale-95 transition font-bold">
+                ＋ 新增資料
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <!-- Basic Info -->
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">下單日期</label>
+                <input type="date" v-model="newItem.date" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">顧客姓名</label>
+                <input type="text" v-model="newItem.customer" placeholder="輸入姓名" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">品牌</label>
+                <input type="text" v-model="newItem.brand" list="brandList" placeholder="選擇或輸入" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <datalist id="brandList">
+                    <option v-for="b in uniqueBrands" :value="b"></option>
+                </datalist>
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">品名</label>
+                <input type="text" v-model="newItem.productName" placeholder="產品名稱" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">型號</label>
+                <input type="text" v-model="newItem.model" placeholder="ex: A-101" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1 flex items-end">
+                <label class="flex items-center space-x-2 cursor-pointer bg-gray-100 px-4 py-2 rounded-xl w-full h-[42px] border border-transparent hover:border-indigo-200 transition">
+                    <input type="checkbox" v-model="newItem.isPaid" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
+                    <span class="text-sm font-medium text-gray-700">已繳清款項</span>
+                </label>
+            </div>
+
+            <!-- Price Info JPY -->
+            <div class="col-span-2 md:col-span-6 border-t my-2 border-dashed border-gray-200"></div>
+
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">日幣原價</label>
+                <input type="number" v-model.number="newItem.priceJPY" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">折後日幣</label>
+                <input type="number" v-model.number="newItem.priceDiscountJPY" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">退稅後日幣</label>
+                <input type="number" v-model.number="newItem.priceTaxFreeJPY" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            
+            <!-- Price Info TWD -->
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-indigo-400 ml-1">台幣成本</label>
+                <input type="number" v-model.number="newItem.priceTWD" @input="calculateProfit" class="form-input w-full mt-1 p-2 rounded-xl border border-indigo-100 bg-indigo-50 focus:bg-white focus:border-indigo-500 focus:outline-none font-medium">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-gray-500 ml-1">運費 (TWD)</label>
+                <input type="number" v-model.number="newItem.shipping" @input="calculateProfit" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+            </div>
+            <div class="col-span-1">
+                <label class="text-xs font-bold text-indigo-600 ml-1">報價 (TWD)</label>
+                <input type="number" v-model.number="newItem.quotePrice" @input="calculateProfit" class="form-input w-full mt-1 p-2 rounded-xl border-2 border-indigo-100 bg-white focus:border-indigo-500 focus:outline-none font-bold text-indigo-700">
+            </div>
+            <div class="col-span-2 md:col-span-6 flex justify-end">
+                 <div class="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2">
+                    <span class="text-xs text-emerald-600 font-bold">預估利潤</span>
+                    <input type="number" v-model.number="newItem.profit" class="bg-transparent font-bold text-emerald-600 outline-none w-24 text-right" placeholder="0">
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="glass-panel rounded-2xl shadow-lg overflow-hidden bg-white">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                    <tr>
+                        <th class="px-4 py-3">日期</th>
+                        <th class="px-4 py-3">品牌/品名</th>
+                        <th class="px-4 py-3">顧客</th>
+                        <th class="px-4 py-3">日幣(退稅)</th>
+                        <th class="px-4 py-3">台幣成本</th>
+                        <th class="px-4 py-3">報價</th>
+                        <th class="px-4 py-3">利潤</th>
+                        <th class="px-4 py-3 text-center">狀態</th>
+                        <th class="px-4 py-3 text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in items" :key="index" class="border-b hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 whitespace-nowrap font-mono text-xs">{{ item.date }}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-gray-800">{{ item.brand }}</div>
+                            <div class="text-xs text-gray-400">{{ item.productName }} <span v-if="item.model">({{ item.model }})</span></div>
+                        </td>
+                        <td class="px-4 py-3">{{ item.customer }}</td>
+                        <td class="px-4 py-3 font-mono">¥{{ item.priceTaxFreeJPY || item.priceDiscountJPY || item.priceJPY }}</td>
+                        <td class="px-4 py-3 font-mono">{{ formatCurrency(item.priceTWD) }}</td>
+                        <td class="px-4 py-3 font-mono font-bold text-indigo-600">{{ formatCurrency(item.quotePrice) }}</td>
+                        <td class="px-4 py-3 font-mono text-emerald-600">+{{ formatCurrency(item.profit) }}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span @click="togglePaid(index)" :class="item.isPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="cursor-pointer px-2 py-1 rounded-full text-xs font-medium select-none">
+                                {{ item.isPaid ? '已繳清' : '未繳' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <button @click="deleteItem(index)" class="text-red-400 hover:text-red-600 transition">✕</button>
+                        </td>
+                    </tr>
+                    <tr v-if="items.length === 0">
+                        <td colspan="9" class="px-6 py-10 text-center text-gray-400">
+                            尚無資料，請由上方新增訂單
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, watch, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            // 資料結構
+            const defaultItem = {
+                brand: '', customer: '', productName: '', model: '',
+                isPaid: false, date: new Date().toISOString().split('T')[0],
+                priceJPY: '', priceDiscountJPY: '', priceTaxFreeJPY: '',
+                priceTWD: '', quotePrice: '', shipping: '', profit: ''
+            };
+
+            const newItem = ref({ ...defaultItem });
+            const items = ref([]);
+            
+            // Chart instances
+            let brandChartInstance = null;
+            let salesChartInstance = null;
+
+            // 初始化
+            onMounted(() => {
+                const savedData = localStorage.getItem('daigou_data');
+                if (savedData) {
+                    items.value = JSON.parse(savedData);
+                }
+                renderCharts();
+            });
+
+            // 監聽數據變化以保存和更新圖表
+            watch(items, (newVal) => {
+                localStorage.setItem('daigou_data', JSON.stringify(newVal));
+                updateCharts();
+            }, { deep: true });
+
+            // 計算利潤邏輯
+            const calculateProfit = () => {
+                const quote = parseFloat(newItem.value.quotePrice) || 0;
+                const cost = parseFloat(newItem.value.priceTWD) || 0;
+                const ship = parseFloat(newItem.value.shipping) || 0;
+                // 如果都有填寫，自動計算利潤
+                if (quote > 0) {
+                    newItem.value.profit = quote - cost - ship;
+                }
+            };
+
+            const addItem = () => {
+                if (!newItem.value.productName || !newItem.value.quotePrice) {
+                    alert('請至少輸入「品名」與「報價」');
+                    return;
+                }
+                items.value.unshift({ ...newItem.value });
+                // Reset form but keep date
+                const currentDate = newItem.value.date;
+                newItem.value = { ...defaultItem, date: currentDate };
+            };
+
+            const deleteItem = (index) => {
+                if(confirm('確定要刪除這筆資料嗎？')) {
+                    items.value.splice(index, 1);
+                }
+            };
+
+            const togglePaid = (index) => {
+                items.value[index].isPaid = !items.value[index].isPaid;
+            };
+
+            const clearAll = () => {
+                if(confirm('確定要清除所有資料嗎？此操作無法復原。')) {
+                    items.value = [];
+                }
+            };
+
+            // 匯出匯入
+            const exportData = () => {
+                const dataStr = JSON.stringify(items.value);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = '代購資料備份_'+new Date().toISOString().slice(0,10)+'.json';
+                
+                let linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            };
+
+            const fileInput = ref(null);
+            const triggerFileInput = () => {
+                fileInput.value.click();
+            };
+
+            const importData = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            if(confirm('匯入將會覆蓋目前的資料，確定嗎？(若想合併請選取消，我會幫你加在後面)')) {
+                                items.value = imported;
+                            } else {
+                                items.value = [...items.value, ...imported];
+                            }
+                        } else {
+                            alert('檔案格式錯誤');
+                        }
+                    } catch (err) {
+                        alert('無法讀取檔案');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // reset
+            };
+
+            // 統計數據
+            const totalRevenue = computed(() => items.value.reduce((sum, item) => sum + (parseFloat(item.quotePrice) || 0), 0));
+            const totalProfit = computed(() => items.value.reduce((sum, item) => sum + (parseFloat(item.profit) || 0), 0));
+            const unpaidCount = computed(() => items.value.filter(item => !item.isPaid).length);
+            const uniqueBrands = computed(() => [...new Set(items.value.map(item => item.brand).filter(Boolean))]);
+
+            // Helper
+            const formatCurrency = (val) => {
+                if (!val && val !== 0) return '-';
+                return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
+            };
+
+            // 圖表邏輯
+            const renderCharts = () => {
+                const ctxBrand = document.getElementById('brandChart');
+                const ctxSales = document.getElementById('salesChart');
+                
+                if (!ctxBrand || !ctxSales) return;
+
+                // 品牌圖表
+                brandChartInstance = new Chart(ctxBrand, {
+                    type: 'doughnut',
+                    data: { labels: [], datasets: [] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+                });
+
+                // 銷售圖表
+                salesChartInstance = new Chart(ctxSales, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+                
+                updateCharts();
+            };
+
+            const updateCharts = () => {
+                if (!brandChartInstance || !salesChartInstance) return;
+
+                // 1. 處理品牌數據
+                const brandCounts = {};
+                items.value.forEach(i => {
+                    const b = i.brand || '未分類';
+                    brandCounts[b] = (brandCounts[b] || 0) + 1;
+                });
+                
+                brandChartInstance.data = {
+                    labels: Object.keys(brandCounts),
+                    datasets: [{
+                        data: Object.values(brandCounts),
+                        backgroundColor: [
+                            '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'
+                        ],
+                        borderWidth: 0
+                    }]
+                };
+                brandChartInstance.update();
+
+                // 2. 處理月度數據
+                const monthlyData = {};
+                items.value.forEach(i => {
+                    if (!i.date) return;
+                    const month = i.date.substring(0, 7); // YYYY-MM
+                    if (!monthlyData[month]) monthlyData[month] = { sales: 0, profit: 0 };
+                    monthlyData[month].sales += (parseFloat(i.quotePrice) || 0);
+                    monthlyData[month].profit += (parseFloat(i.profit) || 0);
+                });
+
+                const sortedMonths = Object.keys(monthlyData).sort();
+                
+                salesChartInstance.data = {
+                    labels: sortedMonths,
+                    datasets: [
+                        {
+                            label: '營業額',
+                            data: sortedMonths.map(m => monthlyData[m].sales),
+                            backgroundColor: '#c7d2fe',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '利潤',
+                            data: sortedMonths.map(m => monthlyData[m].profit),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 4
+                        }
+                    ]
+                };
+                salesChartInstance.update();
+            };
+
+            return {
+                newItem, items, addItem, deleteItem, togglePaid, clearAll,
+                totalRevenue, totalProfit, unpaidCount, uniqueBrands,
+                formatCurrency, calculateProfit,
+                exportData, importData, triggerFileInput, fileInput
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
