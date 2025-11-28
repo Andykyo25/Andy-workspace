@@ -26,6 +26,14 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1);
         }
+        /* 排序表頭樣式 */
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+        .sortable-header:hover { color: #4f46e5; }
+        
         .rank-1 { background-color: #fbbf24; color: #fff; }
         .rank-2 { background-color: #94a3b8; color: #fff; }
         .rank-3 { background-color: #b45309; color: #fff; }
@@ -64,7 +72,7 @@
 
     <!-- Dashboard Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <!-- Revenue Card -->
+        <!-- Revenue -->
         <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
             <div class="relative z-10">
                 <div class="text-indigo-100 text-sm font-medium mb-1">總營業額 (報價總計)</div>
@@ -74,8 +82,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
         </div>
-
-        <!-- Profit Card -->
+        <!-- Profit -->
         <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-emerald-200 relative overflow-hidden">
             <div class="relative z-10">
                 <div class="text-emerald-100 text-sm font-medium mb-1">淨利潤 (已扣運費)</div>
@@ -85,8 +92,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
             </div>
         </div>
-
-        <!-- Orders Card -->
+        <!-- Orders -->
         <div class="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-200 relative overflow-hidden">
             <div class="relative z-10">
                 <div class="text-orange-100 text-sm font-medium mb-1">總訂單數</div>
@@ -96,8 +102,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
             </div>
         </div>
-
-        <!-- Unpaid Card -->
+        <!-- Unpaid -->
         <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg shadow-rose-200 relative overflow-hidden">
             <div class="relative z-10">
                 <div class="text-rose-100 text-sm font-medium mb-1">未繳清款項</div>
@@ -165,7 +170,7 @@
             </div>
         </div>
 
-        <!-- Highest Profit Products (Items) -->
+        <!-- Highest Profit Products -->
         <div class="glass-panel p-6 bg-white">
             <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-1 h-6 bg-emerald-500 rounded-full"></span> 利潤王 (單品 Top 5)
@@ -201,28 +206,34 @@
         </div>
     </div>
 
-    <!-- Input Form -->
-    <div class="glass-panel p-6 mb-8 bg-white">
+    <!-- Input Form (Create / Edit) -->
+    <div id="inputForm" class="glass-panel p-6 mb-8 bg-white transition-all duration-500" :class="{'ring-2 ring-indigo-400 shadow-xl': isEditing}">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-100 pb-4 gap-4">
             <h2 class="text-xl font-bold text-indigo-700 flex items-center gap-2">
-                <span class="text-2xl">📝</span> 新增訂單
+                <span class="text-2xl">{{ isEditing ? '✏️' : '📝' }}</span> 
+                {{ isEditing ? '編輯訂單' : '新增訂單' }}
             </h2>
             
-            <!-- Currency Selection Area -->
+            <!-- Currency Selection -->
             <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
                 <label class="text-xs font-bold text-slate-500 ml-2">幣別:</label>
                 <select v-model="newItem.currency" class="bg-white border border-slate-200 text-slate-700 text-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 block p-1.5 outline-none font-bold">
                     <option v-for="c in currencyList" :value="c">{{ c }}</option>
                 </select>
                 <div class="flex items-center border-l border-slate-200 pl-2 gap-1">
-                    <input type="text" v-model="newCurrencyInput" placeholder="輸入代碼" class="w-20 text-sm p-1.5 rounded border border-slate-200 outline-none uppercase placeholder:normal-case">
-                    <button @click="addCurrency" class="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 p-1.5 rounded text-xs font-bold transition">新增</button>
+                    <input type="text" v-model="newCurrencyInput" placeholder="代碼" class="w-16 text-sm p-1.5 rounded border border-slate-200 outline-none uppercase placeholder:normal-case">
+                    <button @click="addCurrency" class="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 p-1.5 rounded text-xs font-bold transition">＋</button>
                 </div>
             </div>
 
-            <button @click="addItem" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-full shadow-lg shadow-indigo-200 transform active:scale-95 transition font-bold text-sm w-full md:w-auto">
-                ＋ 新增資料
-            </button>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button v-if="isEditing" @click="cancelEdit" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-2.5 rounded-full shadow-sm transition font-bold text-sm flex-1 md:flex-none">
+                    取消
+                </button>
+                <button @click="handleItemSubmit" :class="isEditing ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'" class="text-white px-8 py-2.5 rounded-full shadow-lg transform active:scale-95 transition font-bold text-sm flex-1 md:flex-none">
+                    {{ isEditing ? '💾 儲存修改' : '＋ 新增資料' }}
+                </button>
+            </div>
         </div>
         
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
@@ -326,15 +337,29 @@
             <table class="w-full text-sm text-left text-slate-500">
                 <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-100">
                     <tr>
-                        <th class="px-4 py-4 font-bold">日期</th>
-                        <th class="px-4 py-4 font-bold">品牌 / 品名</th>
-                        <th class="px-4 py-4 font-bold">顧客</th>
+                        <th @click="sortBy('date')" class="px-4 py-4 font-bold sortable-header">
+                            日期 <span v-if="sortKey === 'date'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
+                        <th @click="sortBy('brand')" class="px-4 py-4 font-bold sortable-header">
+                            品牌 / 品名 <span v-if="sortKey === 'brand'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
+                        <th @click="sortBy('customer')" class="px-4 py-4 font-bold sortable-header">
+                            顧客 <span v-if="sortKey === 'customer'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
                         <th class="px-4 py-4 w-36 font-bold">外幣明細</th>
-                        <th class="px-4 py-4 font-bold">台幣成本</th>
+                        <th @click="sortBy('priceTWD')" class="px-4 py-4 font-bold sortable-header">
+                            台幣成本 <span v-if="sortKey === 'priceTWD'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
                         <th class="px-4 py-4 font-bold">運費(扣利潤)</th>
-                        <th class="px-4 py-4 font-bold">報價</th>
-                        <th class="px-4 py-4 font-bold">利潤</th>
-                        <th class="px-4 py-4 text-center font-bold">狀態</th>
+                        <th @click="sortBy('quotePrice')" class="px-4 py-4 font-bold sortable-header">
+                            報價 <span v-if="sortKey === 'quotePrice'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
+                        <th @click="sortBy('profit')" class="px-4 py-4 font-bold sortable-header">
+                            利潤 <span v-if="sortKey === 'profit'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
+                        <th @click="sortBy('isPaid')" class="px-4 py-4 text-center font-bold sortable-header">
+                            狀態 <span v-if="sortKey === 'isPaid'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+                        </th>
                         <th class="px-4 py-4 text-center font-bold">操作</th>
                     </tr>
                 </thead>
@@ -365,12 +390,17 @@
                         <td class="px-4 py-3 font-mono font-bold text-indigo-600">{{ formatCurrency(item.quotePrice) }}</td>
                         <td class="px-4 py-3 font-mono font-bold text-emerald-600">+{{ formatCurrency(item.profit) }}</td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <span @click="togglePaid(getItemRealIndex(idx))" :class="item.isPaid ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'" class="cursor-pointer px-3 py-1 rounded-full text-xs font-bold select-none transition hover:opacity-80">
+                            <span @click="togglePaid(item)" :class="item.isPaid ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'" class="cursor-pointer px-3 py-1 rounded-full text-xs font-bold select-none transition hover:opacity-80">
                                 {{ item.isPaid ? '已繳清' : '未繳' }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button @click="deleteItem(getItemRealIndex(idx))" class="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition flex items-center justify-center">✕</button>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button @click="editItem(item)" class="w-8 h-8 rounded-full hover:bg-indigo-50 text-indigo-300 hover:text-indigo-600 transition inline-flex items-center justify-center mr-1" title="編輯">
+                                ✎
+                            </button>
+                            <button @click="deleteItem(item)" class="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition inline-flex items-center justify-center" title="刪除">
+                                ✕
+                            </button>
                         </td>
                     </tr>
                     <tr v-if="items.length === 0">
@@ -402,9 +432,15 @@
             const newItem = ref({ ...defaultItem });
             const items = ref([]);
             
-            // Pagination State
+            // Pagination & Sorting State
             const currentPage = ref(1);
             const itemsPerPage = ref(10);
+            const sortKey = ref('');
+            const sortOrder = ref(1); // 1: asc, -1: desc
+            
+            // Editing State
+            const isEditing = ref(false);
+            const editingItemIndex = ref(null); // stores index in the main 'items' array
             
             // Currency Management
             const currencyList = ref(['JPY', 'THB']); 
@@ -431,7 +467,6 @@
             watch(items, (newVal) => {
                 localStorage.setItem('daigou_data', JSON.stringify(newVal));
                 updateCharts();
-                // 如果刪除資料導致當前頁碼空白，自動跳回上一頁
                 if (currentPage.value > totalPages.value && totalPages.value > 0) {
                     currentPage.value = totalPages.value;
                 }
@@ -441,22 +476,51 @@
                 localStorage.setItem('daigou_currencies', JSON.stringify(newVal));
             }, { deep: true });
 
-            // 換頁數或新增資料時重置頁碼
             watch(itemsPerPage, () => currentPage.value = 1);
 
+            // Sorting Logic
+            const sortBy = (key) => {
+                if (sortKey.value === key) {
+                    sortOrder.value = sortOrder.value * -1;
+                } else {
+                    sortKey.value = key;
+                    sortOrder.value = 1; // default asc
+                }
+            };
+
+            const sortedItems = computed(() => {
+                let data = [...items.value];
+                if (sortKey.value) {
+                    data.sort((a, b) => {
+                        let valA = a[sortKey.value];
+                        let valB = b[sortKey.value];
+                        
+                        // Handle numbers
+                        if (!isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB))) {
+                            valA = parseFloat(valA);
+                            valB = parseFloat(valB);
+                        } else {
+                            // Handle strings case-insensitive
+                            valA = (valA || '').toString().toLowerCase();
+                            valB = (valB || '').toString().toLowerCase();
+                        }
+
+                        if (valA < valB) return -1 * sortOrder.value;
+                        if (valA > valB) return 1 * sortOrder.value;
+                        return 0;
+                    });
+                }
+                return data;
+            });
+
             // Pagination Logic
-            const totalPages = computed(() => Math.ceil(items.value.length / itemsPerPage.value));
+            const totalPages = computed(() => Math.ceil(sortedItems.value.length / itemsPerPage.value));
             
             const paginatedItems = computed(() => {
                 const start = (currentPage.value - 1) * itemsPerPage.value;
                 const end = start + itemsPerPage.value;
-                return items.value.slice(start, end);
+                return sortedItems.value.slice(start, end);
             });
-
-            // 取得實際 Index (因為分頁後 idx 是 0-9，需換算回 items 的 index)
-            const getItemRealIndex = (pageIndex) => {
-                return (currentPage.value - 1) * itemsPerPage.value + pageIndex;
-            };
 
             // Helper Functions
             const addCurrency = () => {
@@ -489,26 +553,60 @@
                 }
             };
 
-            const addItem = () => {
+            // CRUD & Edit Operations
+            const handleItemSubmit = () => {
                 if (!newItem.value.productName || !newItem.value.quotePrice) {
                     alert('請至少輸入「品名」與「報價」');
                     return;
                 }
-                items.value.unshift({ ...newItem.value });
-                const currentDate = newItem.value.date;
-                const currentCurrency = newItem.value.currency; 
-                newItem.value = { ...defaultItem, date: currentDate, currency: currentCurrency };
-                currentPage.value = 1; // 回到第一頁看新資料
-            };
 
-            const deleteItem = (realIndex) => {
-                if(confirm('確定要刪除這筆資料嗎？')) {
-                    items.value.splice(realIndex, 1);
+                if (isEditing.value && editingItemIndex.value !== null) {
+                    // Update existing
+                    items.value[editingItemIndex.value] = { ...newItem.value };
+                    cancelEdit();
+                } else {
+                    // Add new
+                    items.value.unshift({ ...newItem.value });
+                    // Keep date and currency for convenience
+                    const currentDate = newItem.value.date;
+                    const currentCurrency = newItem.value.currency;
+                    newItem.value = { ...defaultItem, date: currentDate, currency: currentCurrency };
+                    // Reset sort to see new item at top if unsorted, or let it sort
+                    if(!sortKey.value) currentPage.value = 1;
                 }
             };
 
-            const togglePaid = (realIndex) => {
-                items.value[realIndex].isPaid = !items.value[realIndex].isPaid;
+            const editItem = (item) => {
+                // Find index in original array
+                const index = items.value.indexOf(item);
+                if (index !== -1) {
+                    editingItemIndex.value = index;
+                    newItem.value = { ...item }; // Deep copy to form
+                    isEditing.value = true;
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
+
+            const cancelEdit = () => {
+                isEditing.value = false;
+                editingItemIndex.value = null;
+                // Reset form but keep basic preference
+                const currentDate = newItem.value.date;
+                const currentCurrency = newItem.value.currency;
+                newItem.value = { ...defaultItem, date: currentDate, currency: currentCurrency };
+            };
+
+            const deleteItem = (item) => {
+                if(confirm('確定要刪除這筆資料嗎？')) {
+                    const index = items.value.indexOf(item);
+                    if (index !== -1) items.value.splice(index, 1);
+                }
+            };
+
+            const togglePaid = (item) => {
+                // Modifying object directly works because Vue reactive objects are passed by reference
+                item.isPaid = !item.isPaid;
             };
 
             const clearAll = () => {
@@ -627,14 +725,13 @@
             const updateCharts = () => {
                 if (!brandChartInstance || !salesChartInstance) return;
 
-                // 1. 品牌數據 (優化：取 Top 5 + Others)
+                // 1. 品牌數據 (Top 5 + Others)
                 const brandCounts = {};
                 items.value.forEach(i => {
                     const b = normalizeBrand(i.brand);
                     brandCounts[b] = (brandCounts[b] || 0) + 1;
                 });
                 
-                // 排序並處理 Top 5
                 const sortedBrands = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]);
                 let finalLabels = [];
                 let finalData = [];
@@ -646,7 +743,6 @@
                     
                     finalLabels = top5.map(i => i[0]);
                     finalData = top5.map(i => i[1]);
-                    
                     finalLabels.push('其他 (Others)');
                     finalData.push(othersSum);
                 } else {
@@ -658,7 +754,7 @@
                     labels: finalLabels,
                     datasets: [{
                         data: finalData,
-                        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], // 最後一個灰色給 Others
+                        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'],
                         borderWidth: 0
                     }]
                 };
@@ -687,14 +783,14 @@
             };
 
             return {
-                newItem, items, addItem, deleteItem, togglePaid, clearAll,
-                totalRevenue, totalProfit, unpaidCount, uniqueBrands,
+                newItem, items, handleItemSubmit, editItem, cancelEdit, deleteItem, togglePaid, clearAll,
+                totalRevenue, totalProfit, unpaidCount, uniqueBrands, isEditing,
                 formatCurrency, calculateProfit,
                 exportData, importData, triggerFileInput, fileInput,
                 topSellingBrands, topProfitProducts, getRankClass,
                 currencyList, newCurrencyInput, addCurrency, getCurrencySymbol,
-                // Pagination
-                currentPage, itemsPerPage, totalPages, paginatedItems, getItemRealIndex
+                currentPage, itemsPerPage, totalPages, paginatedItems,
+                sortKey, sortOrder, sortBy
             };
         }
     }).mount('#app');
