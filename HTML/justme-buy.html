@@ -4,212 +4,322 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>代購明細統計系統</title>
-    <!-- Tailwind CSS (UI設計) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js (圖表) -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Vue.js 3 (邏輯) -->
+    <!-- Vue.js 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 1);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(226, 232, 240, 0.8);
         }
-        .form-input {
-            transition: all 0.3s ease;
-        }
+        .form-input { transition: all 0.3s ease; }
         .form-input:focus {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1);
         }
-        /* 自定義捲軸 */
+        /* 排行榜獎牌顏色 */
+        .rank-1 { background-color: #fbbf24; color: #fff; } /* 金 */
+        .rank-2 { background-color: #94a3b8; color: #fff; } /* 銀 */
+        .rank-3 { background-color: #b45309; color: #fff; } /* 銅 */
+        .rank-other { background-color: #f1f5f9; color: #64748b; }
+        
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="text-gray-700">
+<body class="text-slate-600">
 
-<div id="app" class="min-h-screen p-4 md:p-8">
+<div id="app" class="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
 
     <!-- Header & Controls -->
     <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-indigo-600 tracking-tight">代購明細統計系統</h1>
-            <p class="text-gray-500 text-sm mt-1">智慧分析與庫存管理</p>
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">代購明細統計系統</h1>
+            <p class="text-slate-400 text-sm mt-1">智慧分析與庫存管理</p>
         </div>
-        <div class="flex gap-3">
-            <button @click="triggerFileInput" class="bg-white text-indigo-600 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-indigo-100 flex items-center gap-2">
+        <div class="flex gap-2 text-sm">
+            <button @click="triggerFileInput" class="bg-white hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-2">
                 📂 匯入
             </button>
             <input type="file" ref="fileInput" class="hidden" @change="importData" accept=".json">
             
-            <button @click="exportData" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-indigo-100 flex items-center gap-2">
+            <button @click="exportData" class="bg-white hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-lg border border-slate-200 shadow-sm transition flex items-center gap-2">
                 💾 備份
             </button>
-            <button @click="clearAll" class="bg-red-50 text-red-500 px-4 py-2 rounded-full shadow-sm hover:shadow-md transition font-medium border border-red-100">
+            <button @click="clearAll" class="bg-white hover:bg-red-50 text-slate-600 hover:text-red-500 px-4 py-2 rounded-lg border border-slate-200 shadow-sm transition">
                 🗑️ 清除
             </button>
         </div>
     </header>
 
-    <!-- Dashboard Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-indigo-500">
-            <div class="text-gray-400 text-sm font-medium mb-1">總營業額 (報價總計)</div>
-            <div class="text-3xl font-bold text-gray-800">{{ formatCurrency(totalRevenue) }}</div>
+    <!-- New Dashboard Cards (Solid Style) -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <!-- Revenue Card -->
+        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="text-indigo-100 text-sm font-medium mb-1">總營業額 (報價總計)</div>
+                <div class="text-3xl font-bold tracking-tight">{{ formatCurrency(totalRevenue) }}</div>
+            </div>
+            <div class="absolute right-4 bottom-4 opacity-20 transform scale-150">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
         </div>
-        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-emerald-500">
-            <div class="text-gray-400 text-sm font-medium mb-1">淨利潤 (扣除運費成本)</div>
-            <div class="text-3xl font-bold text-emerald-600">{{ formatCurrency(totalProfit) }}</div>
+
+        <!-- Profit Card -->
+        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-emerald-200 relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="text-emerald-100 text-sm font-medium mb-1">淨利潤 (已扣運費)</div>
+                <div class="text-3xl font-bold tracking-tight">{{ formatCurrency(totalProfit) }}</div>
+            </div>
+            <div class="absolute right-4 bottom-4 opacity-20 transform scale-150">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            </div>
         </div>
-        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-orange-400">
-            <div class="text-gray-400 text-sm font-medium mb-1">總訂單數</div>
-            <div class="text-3xl font-bold text-gray-800">{{ items.length }} <span class="text-sm font-normal text-gray-400">筆</span></div>
+
+        <!-- Orders Card -->
+        <div class="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-200 relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="text-orange-100 text-sm font-medium mb-1">總訂單數</div>
+                <div class="text-3xl font-bold tracking-tight">{{ items.length }} <span class="text-lg font-normal opacity-80">筆</span></div>
+            </div>
+            <div class="absolute right-4 bottom-4 opacity-20 transform scale-150">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            </div>
         </div>
-        <div class="glass-panel p-6 rounded-2xl shadow-sm border-l-4 border-rose-500">
-            <div class="text-gray-400 text-sm font-medium mb-1">未繳清款項</div>
-            <div class="text-3xl font-bold text-rose-500">{{ unpaidCount }} <span class="text-sm font-normal text-gray-400">筆</span></div>
+
+        <!-- Unpaid Card -->
+        <div class="bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-6 text-white shadow-lg shadow-rose-200 relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="text-rose-100 text-sm font-medium mb-1">未繳清款項</div>
+                <div class="text-3xl font-bold tracking-tight">{{ unpaidCount }} <span class="text-lg font-normal opacity-80">筆</span></div>
+            </div>
+            <div class="absolute right-4 bottom-4 opacity-20 transform scale-150">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
         </div>
     </div>
 
     <!-- Charts Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div class="glass-panel p-6 rounded-2xl shadow-lg bg-white">
-            <h3 class="text-lg font-bold text-gray-700 mb-4">品牌銷售佔比</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="glass-panel p-6 bg-white">
+            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-indigo-500 rounded-full"></span> 品牌銷售佔比
+            </h3>
             <div class="relative h-64">
                 <canvas id="brandChart"></canvas>
             </div>
         </div>
-        <div class="glass-panel p-6 rounded-2xl shadow-lg bg-white">
-            <h3 class="text-lg font-bold text-gray-700 mb-4">月度銷售利潤趨勢</h3>
+        <div class="glass-panel p-6 bg-white">
+            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-indigo-500 rounded-full"></span> 月度銷售利潤趨勢
+            </h3>
             <div class="relative h-64">
                 <canvas id="salesChart"></canvas>
             </div>
         </div>
     </div>
 
+    <!-- NEW Rankings Section (Product Analysis) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Hot Selling Products -->
+        <div class="glass-panel p-6 bg-white">
+            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-orange-400 rounded-full"></span> 熱銷排行榜 (Top 5)
+            </h3>
+            <div class="overflow-y-auto max-h-60">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-400 bg-slate-50 uppercase sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left">排名</th>
+                            <th class="px-3 py-2 text-left">品名</th>
+                            <th class="px-3 py-2 text-right">銷量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(prod, idx) in topSellingProducts" :key="idx" class="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                            <td class="px-3 py-3 w-12">
+                                <span :class="getRankClass(idx)" class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold">
+                                    {{ idx + 1 }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3">
+                                <div class="font-bold text-slate-700">{{ prod.name }}</div>
+                                <div class="text-xs text-slate-400">{{ prod.brand }}</div>
+                            </td>
+                            <td class="px-3 py-3 text-right font-bold text-slate-600">
+                                {{ prod.count }}
+                            </td>
+                        </tr>
+                        <tr v-if="topSellingProducts.length === 0"><td colspan="3" class="text-center py-4 text-gray-400">尚無資料</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Highest Profit Products -->
+        <div class="glass-panel p-6 bg-white">
+            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-emerald-500 rounded-full"></span> 利潤王排行榜 (Top 5)
+            </h3>
+            <div class="overflow-y-auto max-h-60">
+                <table class="w-full text-sm">
+                    <thead class="text-xs text-slate-400 bg-slate-50 uppercase sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 text-left">排名</th>
+                            <th class="px-3 py-2 text-left">品名</th>
+                            <th class="px-3 py-2 text-right">總利潤</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(prod, idx) in topProfitProducts" :key="idx" class="border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                            <td class="px-3 py-3 w-12">
+                                <span :class="getRankClass(idx)" class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold">
+                                    {{ idx + 1 }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3">
+                                <div class="font-bold text-slate-700">{{ prod.name }}</div>
+                                <div class="text-xs text-slate-400">{{ prod.brand }}</div>
+                            </td>
+                            <td class="px-3 py-3 text-right font-bold text-emerald-600 font-mono">
+                                {{ formatCurrency(prod.totalProfit) }}
+                            </td>
+                        </tr>
+                        <tr v-if="topProfitProducts.length === 0"><td colspan="3" class="text-center py-4 text-gray-400">尚無資料</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Input Form -->
-    <div class="glass-panel p-6 rounded-2xl shadow-lg mb-8 bg-white">
-        <div class="flex justify-between items-center mb-6 border-b pb-4">
-            <h2 class="text-xl font-bold text-indigo-700">新增訂單</h2>
-            <button @click="addItem" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2 rounded-full shadow-lg transform active:scale-95 transition font-bold">
+    <div class="glass-panel p-6 mb-8 bg-white">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+            <h2 class="text-xl font-bold text-indigo-700 flex items-center gap-2">
+                <span class="text-2xl">📝</span> 新增訂單
+            </h2>
+            <button @click="addItem" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-full shadow-lg shadow-indigo-200 transform active:scale-95 transition font-bold text-sm">
                 ＋ 新增資料
             </button>
         </div>
         
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
             <!-- Basic Info -->
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">下單日期</label>
-                <input type="date" v-model="newItem.date" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">下單日期</label>
+                <input type="date" v-model="newItem.date" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">顧客姓名</label>
-                <input type="text" v-model="newItem.customer" placeholder="輸入姓名" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">顧客姓名</label>
+                <input type="text" v-model="newItem.customer" placeholder="輸入姓名" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">品牌</label>
-                <input type="text" v-model="newItem.brand" list="brandList" placeholder="選擇或輸入" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">品牌</label>
+                <input type="text" v-model="newItem.brand" list="brandList" placeholder="選擇或輸入" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
                 <datalist id="brandList">
                     <option v-for="b in uniqueBrands" :value="b"></option>
                 </datalist>
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">品名</label>
-                <input type="text" v-model="newItem.productName" placeholder="產品名稱" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">品名</label>
+                <input type="text" v-model="newItem.productName" placeholder="產品名稱" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">型號</label>
-                <input type="text" v-model="newItem.model" placeholder="ex: A-101" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">型號</label>
+                <input type="text" v-model="newItem.model" placeholder="ex: A-101" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1 flex items-end">
-                <label class="flex items-center space-x-2 cursor-pointer bg-gray-100 px-4 py-2 rounded-xl w-full h-[42px] border border-transparent hover:border-indigo-200 transition">
-                    <input type="checkbox" v-model="newItem.isPaid" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
-                    <span class="text-sm font-medium text-gray-700">已繳清款項</span>
+                <label class="flex items-center space-x-2 cursor-pointer bg-slate-100 px-4 rounded-xl w-full h-[42px] border border-transparent hover:border-indigo-200 transition">
+                    <input type="checkbox" v-model="newItem.isPaid" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500">
+                    <span class="text-sm font-medium text-slate-600">已繳清款項</span>
                 </label>
             </div>
 
             <!-- Price Info JPY -->
-            <div class="col-span-2 md:col-span-6 border-t my-2 border-dashed border-gray-200"></div>
+            <div class="col-span-2 md:col-span-6 border-t border-slate-100 my-1"></div>
 
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">日幣原價</label>
-                <input type="number" v-model.number="newItem.priceJPY" placeholder="¥" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-400 ml-1 mb-1 block">日幣原價</label>
+                <input type="number" v-model.number="newItem.priceJPY" placeholder="¥" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-orange-400 ml-1">折後日幣</label>
-                <input type="number" v-model.number="newItem.priceDiscountJPY" placeholder="¥" class="form-input w-full mt-1 p-2 rounded-xl border border-orange-100 bg-orange-50 focus:bg-white focus:border-orange-500 focus:outline-none">
+                <label class="text-xs font-bold text-orange-400 ml-1 mb-1 block">折後日幣</label>
+                <input type="number" v-model.number="newItem.priceDiscountJPY" placeholder="¥" class="form-input w-full p-2.5 rounded-xl border border-orange-100 bg-orange-50 focus:bg-white focus:border-orange-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-blue-400 ml-1">退稅後日幣</label>
-                <input type="number" v-model.number="newItem.priceTaxFreeJPY" placeholder="¥" class="form-input w-full mt-1 p-2 rounded-xl border border-blue-100 bg-blue-50 focus:bg-white focus:border-blue-500 focus:outline-none">
+                <label class="text-xs font-bold text-blue-400 ml-1 mb-1 block">退稅後日幣</label>
+                <input type="number" v-model.number="newItem.priceTaxFreeJPY" placeholder="¥" class="form-input w-full p-2.5 rounded-xl border border-blue-100 bg-blue-50 focus:bg-white focus:border-blue-500 focus:outline-none text-sm">
             </div>
             
             <!-- Price Info TWD -->
             <div class="col-span-1">
-                <label class="text-xs font-bold text-indigo-400 ml-1">台幣成本</label>
-                <input type="number" v-model.number="newItem.priceTWD" @input="calculateProfit" class="form-input w-full mt-1 p-2 rounded-xl border border-indigo-100 bg-indigo-50 focus:bg-white focus:border-indigo-500 focus:outline-none font-medium">
+                <label class="text-xs font-bold text-indigo-400 ml-1 mb-1 block">台幣成本</label>
+                <input type="number" v-model.number="newItem.priceTWD" @input="calculateProfit" class="form-input w-full p-2.5 rounded-xl border border-indigo-100 bg-indigo-50 focus:bg-white focus:border-indigo-500 focus:outline-none font-medium text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-gray-500 ml-1">運費 (成本)</label>
-                <input type="number" v-model.number="newItem.shipping" @input="calculateProfit" placeholder="會扣除利潤" class="form-input w-full mt-1 p-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none">
+                <label class="text-xs font-bold text-slate-500 ml-1 mb-1 block">運費 (成本)</label>
+                <input type="number" v-model.number="newItem.shipping" @input="calculateProfit" placeholder="會扣除利潤" class="form-input w-full p-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm">
             </div>
             <div class="col-span-1">
-                <label class="text-xs font-bold text-indigo-600 ml-1">報價 (總收入)</label>
-                <input type="number" v-model.number="newItem.quotePrice" @input="calculateProfit" class="form-input w-full mt-1 p-2 rounded-xl border-2 border-indigo-100 bg-white focus:border-indigo-500 focus:outline-none font-bold text-indigo-700">
+                <label class="text-xs font-bold text-indigo-600 ml-1 mb-1 block">報價 (總收入)</label>
+                <input type="number" v-model.number="newItem.quotePrice" @input="calculateProfit" class="form-input w-full p-2.5 rounded-xl border-2 border-indigo-100 bg-white focus:border-indigo-500 focus:outline-none font-bold text-indigo-700 text-sm">
             </div>
-            <div class="col-span-2 md:col-span-6 flex justify-end">
-                 <div class="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2">
-                    <span class="text-xs text-emerald-600 font-bold">預估利潤</span>
-                    <input type="number" v-model.number="newItem.profit" class="bg-transparent font-bold text-emerald-600 outline-none w-24 text-right" placeholder="0">
+            <div class="col-span-2 md:col-span-6 flex justify-end mt-2">
+                 <div class="bg-emerald-50 px-5 py-2 rounded-xl border border-emerald-100 flex items-center gap-3">
+                    <span class="text-xs text-emerald-600 font-bold uppercase tracking-wider">預估利潤</span>
+                    <input type="number" v-model.number="newItem.profit" class="bg-transparent font-bold text-xl text-emerald-600 outline-none w-32 text-right" placeholder="0">
                  </div>
             </div>
         </div>
     </div>
 
     <!-- Data Table -->
-    <div class="glass-panel rounded-2xl shadow-lg overflow-hidden bg-white">
+    <div class="glass-panel overflow-hidden bg-white">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+            <table class="w-full text-sm text-left text-slate-500">
+                <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-100">
                     <tr>
-                        <th class="px-4 py-3">日期</th>
-                        <th class="px-4 py-3">品牌/品名</th>
-                        <th class="px-4 py-3">顧客</th>
-                        <th class="px-4 py-3 w-32">日幣價格明細</th> <!-- 變寬 -->
-                        <th class="px-4 py-3">台幣成本</th>
-                        <th class="px-4 py-3">運費成本</th>
-                        <th class="px-4 py-3">報價</th>
-                        <th class="px-4 py-3">利潤</th>
-                        <th class="px-4 py-3 text-center">狀態</th>
-                        <th class="px-4 py-3 text-center">操作</th>
+                        <th class="px-4 py-4 font-bold">日期</th>
+                        <th class="px-4 py-4 font-bold">品牌 / 品名</th>
+                        <th class="px-4 py-4 font-bold">顧客</th>
+                        <th class="px-4 py-4 w-32 font-bold">日幣明細</th>
+                        <th class="px-4 py-4 font-bold">台幣成本</th>
+                        <th class="px-4 py-4 font-bold">運費(扣利潤)</th>
+                        <th class="px-4 py-4 font-bold">報價</th>
+                        <th class="px-4 py-4 font-bold">利潤</th>
+                        <th class="px-4 py-4 text-center font-bold">狀態</th>
+                        <th class="px-4 py-4 text-center font-bold">操作</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr v-for="(item, index) in items" :key="index" class="border-b hover:bg-gray-50 transition">
+                <tbody class="divide-y divide-slate-100">
+                    <tr v-for="(item, index) in items" :key="index" class="hover:bg-slate-50 transition duration-150">
                         <!-- 日期 -->
-                        <td class="px-4 py-3 whitespace-nowrap font-mono text-xs">{{ item.date }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap font-mono text-xs text-slate-400">{{ item.date }}</td>
                         
                         <!-- 品牌/品名 -->
                         <td class="px-4 py-3">
-                            <div class="font-bold text-gray-800">{{ item.brand }}</div>
-                            <div class="text-xs text-gray-400">{{ item.productName }} <span v-if="item.model">({{ item.model }})</span></div>
+                            <div class="font-bold text-slate-700">{{ item.brand }}</div>
+                            <div class="text-xs text-slate-500">{{ item.productName }} <span v-if="item.model" class="text-slate-400">({{ item.model }})</span></div>
                         </td>
 
                         <!-- 顧客 -->
-                        <td class="px-4 py-3">{{ item.customer }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ item.customer }}</td>
                         
-                        <!-- 日幣明細 (視覺優化) -->
+                        <!-- 日幣明細 -->
                         <td class="px-4 py-3">
                             <div class="flex flex-col gap-1 items-start">
-                                <span v-if="item.priceJPY" class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                <span v-if="item.priceJPY" class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full whitespace-nowrap">
                                     原 ¥{{ item.priceJPY }}
                                 </span>
                                 <span v-if="item.priceDiscountJPY" class="text-[10px] bg-orange-50 text-orange-600 font-bold px-2 py-0.5 rounded-full whitespace-nowrap border border-orange-100">
@@ -218,31 +328,32 @@
                                 <span v-if="item.priceTaxFreeJPY" class="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-full whitespace-nowrap border border-blue-100">
                                     退 ¥{{ item.priceTaxFreeJPY }}
                                 </span>
-                                <span v-if="!item.priceJPY && !item.priceDiscountJPY && !item.priceTaxFreeJPY" class="text-gray-300 text-xs">-</span>
+                                <span v-if="!item.priceJPY && !item.priceDiscountJPY && !item.priceTaxFreeJPY" class="text-slate-200 text-xs">-</span>
                             </div>
                         </td>
 
                         <!-- 金額欄位 -->
-                        <td class="px-4 py-3 font-mono">{{ formatCurrency(item.priceTWD) }}</td>
-                        <td class="px-4 py-3 font-mono text-gray-400">{{ item.shipping ? formatCurrency(item.shipping) : '-' }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-600">{{ formatCurrency(item.priceTWD) }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-400">{{ item.shipping ? formatCurrency(item.shipping) : '-' }}</td>
                         <td class="px-4 py-3 font-mono font-bold text-indigo-600">{{ formatCurrency(item.quotePrice) }}</td>
-                        <td class="px-4 py-3 font-mono text-emerald-600">+{{ formatCurrency(item.profit) }}</td>
+                        <td class="px-4 py-3 font-mono font-bold text-emerald-600">+{{ formatCurrency(item.profit) }}</td>
                         
                         <!-- 狀態 -->
                         <td class="px-4 py-3 text-center">
-                            <span @click="togglePaid(index)" :class="item.isPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="cursor-pointer px-2 py-1 rounded-full text-xs font-medium select-none">
+                            <span @click="togglePaid(index)" :class="item.isPaid ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-100 text-rose-700 ring-1 ring-rose-200'" class="cursor-pointer px-3 py-1 rounded-full text-xs font-bold select-none transition hover:opacity-80">
                                 {{ item.isPaid ? '已繳清' : '未繳' }}
                             </span>
                         </td>
                         
                         <!-- 操作 -->
                         <td class="px-4 py-3 text-center">
-                            <button @click="deleteItem(index)" class="text-red-400 hover:text-red-600 transition">✕</button>
+                            <button @click="deleteItem(index)" class="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition flex items-center justify-center">✕</button>
                         </td>
                     </tr>
                     <tr v-if="items.length === 0">
-                        <td colspan="10" class="px-6 py-10 text-center text-gray-400">
-                            尚無資料，請由上方新增訂單
+                        <td colspan="10" class="px-6 py-12 text-center text-slate-400">
+                            <div class="text-4xl mb-2">📋</div>
+                            目前沒有訂單資料，請在上方新增
                         </td>
                     </tr>
                 </tbody>
@@ -287,13 +398,12 @@
                 updateCharts();
             }, { deep: true });
 
-            // 計算利潤邏輯 (修正：運費是成本，會扣利潤)
+            // 計算利潤邏輯 (運費是成本)
             const calculateProfit = () => {
                 const quote = parseFloat(newItem.value.quotePrice) || 0;
                 const cost = parseFloat(newItem.value.priceTWD) || 0;
                 const shipping = parseFloat(newItem.value.shipping) || 0;
                 
-                // 公式：利潤 = 報價 - 成本 - 運費
                 if (quote > 0) {
                     newItem.value.profit = quote - cost - shipping;
                 }
@@ -305,7 +415,6 @@
                     return;
                 }
                 items.value.unshift({ ...newItem.value });
-                // Reset form but keep date
                 const currentDate = newItem.value.date;
                 newItem.value = { ...defaultItem, date: currentDate };
             };
@@ -326,12 +435,10 @@
                 }
             };
 
-            // 匯出匯入
             const exportData = () => {
                 const dataStr = JSON.stringify(items.value);
                 const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
                 const exportFileDefaultName = '代購資料備份_'+new Date().toISOString().slice(0,10)+'.json';
-                
                 let linkElement = document.createElement('a');
                 linkElement.setAttribute('href', dataUri);
                 linkElement.setAttribute('download', exportFileDefaultName);
@@ -339,9 +446,7 @@
             };
 
             const fileInput = ref(null);
-            const triggerFileInput = () => {
-                fileInput.value.click();
-            };
+            const triggerFileInput = () => { fileInput.value.click(); };
 
             const importData = (event) => {
                 const file = event.target.files[0];
@@ -351,58 +456,87 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (Array.isArray(imported)) {
-                            if(confirm('匯入將會覆蓋目前的資料，確定嗎？(若想合併請選取消，會加在後面)')) {
+                            if(confirm('匯入將會覆蓋目前的資料，確定嗎？(若想合併請選取消)')) {
                                 items.value = imported;
                             } else {
                                 items.value = [...items.value, ...imported];
                             }
-                        } else {
-                            alert('檔案格式錯誤');
-                        }
-                    } catch (err) {
-                        alert('無法讀取檔案');
-                    }
+                        } else { alert('檔案格式錯誤'); }
+                    } catch (err) { alert('無法讀取檔案'); }
                 };
                 reader.readAsText(file);
                 event.target.value = ''; 
             };
 
-            // 統計數據 (總營業額 = 報價總和)
+            // 統計數據
             const totalRevenue = computed(() => items.value.reduce((sum, item) => sum + (parseFloat(item.quotePrice) || 0), 0));
             const totalProfit = computed(() => items.value.reduce((sum, item) => sum + (parseFloat(item.profit) || 0), 0));
             const unpaidCount = computed(() => items.value.filter(item => !item.isPaid).length);
             const uniqueBrands = computed(() => [...new Set(items.value.map(item => item.brand).filter(Boolean))]);
 
-            // Helper
+            // 排行榜分析邏輯
+            const productStats = computed(() => {
+                const stats = {};
+                items.value.forEach(item => {
+                    // 以 "品牌 + 品名" 作為唯一識別
+                    const key = (item.brand || 'Other') + ' - ' + item.productName;
+                    if (!stats[key]) {
+                        stats[key] = { 
+                            name: item.productName, 
+                            brand: item.brand || '無品牌', 
+                            count: 0, 
+                            totalProfit: 0 
+                        };
+                    }
+                    stats[key].count += 1;
+                    stats[key].totalProfit += (parseFloat(item.profit) || 0);
+                });
+                return Object.values(stats);
+            });
+
+            // 熱銷排行 (銷量高 -> 低)
+            const topSellingProducts = computed(() => {
+                return [...productStats.value].sort((a, b) => b.count - a.count).slice(0, 5);
+            });
+
+            // 利潤排行 (總利潤高 -> 低)
+            const topProfitProducts = computed(() => {
+                return [...productStats.value].sort((a, b) => b.totalProfit - a.totalProfit).slice(0, 5);
+            });
+
+            const getRankClass = (idx) => {
+                if (idx === 0) return 'rank-1';
+                if (idx === 1) return 'rank-2';
+                if (idx === 2) return 'rank-3';
+                return 'rank-other';
+            };
+
             const formatCurrency = (val) => {
                 if (!val && val !== 0) return '-';
                 return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
             };
 
-            // 圖表邏輯
+            // Charts
             const renderCharts = () => {
                 const ctxBrand = document.getElementById('brandChart');
                 const ctxSales = document.getElementById('salesChart');
-                
                 if (!ctxBrand || !ctxSales) return;
 
                 brandChartInstance = new Chart(ctxBrand, {
                     type: 'doughnut',
                     data: { labels: [], datasets: [] },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
                 });
 
                 salesChartInstance = new Chart(ctxSales, {
                     type: 'bar',
                     data: { labels: [], datasets: [] },
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        scales: { y: { beginAtZero: true } },
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
                         plugins: { legend: { position: 'bottom' } }
                     }
                 });
-                
                 updateCharts();
             };
 
@@ -420,9 +554,7 @@
                     labels: Object.keys(brandCounts),
                     datasets: [{
                         data: Object.values(brandCounts),
-                        backgroundColor: [
-                            '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'
-                        ],
+                        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'],
                         borderWidth: 0
                     }]
                 };
@@ -434,7 +566,6 @@
                     if (!i.date) return;
                     const month = i.date.substring(0, 7); 
                     if (!monthlyData[month]) monthlyData[month] = { sales: 0, profit: 0 };
-                    
                     monthlyData[month].sales += (parseFloat(i.quotePrice) || 0);
                     monthlyData[month].profit += (parseFloat(i.profit) || 0);
                 });
@@ -444,18 +575,8 @@
                 salesChartInstance.data = {
                     labels: sortedMonths,
                     datasets: [
-                        {
-                            label: '營業額(報價)',
-                            data: sortedMonths.map(m => monthlyData[m].sales),
-                            backgroundColor: '#c7d2fe',
-                            borderRadius: 4
-                        },
-                        {
-                            label: '淨利潤',
-                            data: sortedMonths.map(m => monthlyData[m].profit),
-                            backgroundColor: '#6366f1',
-                            borderRadius: 4
-                        }
+                        { label: '營業額', data: sortedMonths.map(m => monthlyData[m].sales), backgroundColor: '#c7d2fe', borderRadius: 4 },
+                        { label: '淨利潤', data: sortedMonths.map(m => monthlyData[m].profit), backgroundColor: '#6366f1', borderRadius: 4 }
                     ]
                 };
                 salesChartInstance.update();
@@ -465,7 +586,8 @@
                 newItem, items, addItem, deleteItem, togglePaid, clearAll,
                 totalRevenue, totalProfit, unpaidCount, uniqueBrands,
                 formatCurrency, calculateProfit,
-                exportData, importData, triggerFileInput, fileInput
+                exportData, importData, triggerFileInput, fileInput,
+                topSellingProducts, topProfitProducts, getRankClass
             };
         }
     }).mount('#app');
