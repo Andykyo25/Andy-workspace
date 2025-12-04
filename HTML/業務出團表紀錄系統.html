@@ -11,13 +11,26 @@
     <style>
         body { background-color: #f8f9fa; padding: 20px; font-family: "Microsoft JhengHei", sans-serif; }
         .table-container { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 15px; }
-        th { white-space: nowrap; background-color: #2c3e50 !important; color: white; vertical-align: middle; }
-        td { white-space: nowrap; vertical-align: middle; }
-        .btn-group-action { display: flex; gap: 5px; }
+        
+        /* 修改這裡：將原本深色背景改為較亮的藍色，並移除過黑的設定 */
+        th { 
+            white-space: nowrap; 
+            background-color: #435d7d !important; /* 較為柔和的藍灰色 */
+            color: white; 
+            vertical-align: middle; 
+            text-align: center;
+        }
+        
+        td { white-space: nowrap; vertical-align: middle; text-align: center; }
+        .text-left { text-align: left !important; }
+        .btn-group-action { display: flex; gap: 5px; justify-content: center; }
         .status-v { color: green; font-weight: bold; }
         .form-label { font-weight: bold; font-size: 0.9rem; }
-        /* 針對特定欄位設定最小寬度 */
-        .min-w-100 { min-width: 100px; }
+        
+        /* 特別標註顏色的欄位標頭 (讓新增的特殊欄位稍微不同，但不要太黑) */
+        .th-highlight {
+            background-color: #3b71ca !important; /* Bootstrap Primary Blue */
+        }
     </style>
 </head>
 <body>
@@ -58,14 +71,18 @@
                             
                             <div class="col-md-2"><label class="form-label">預估業績</label><input type="number" class="form-control" id="f_estRev"></div>
                             <div class="col-md-2"><label class="form-label">實際業績</label><input type="number" class="form-control" id="f_actRev"></div>
+                            
+                            <!-- 修改：合約新增 PDF 選項 -->
                             <div class="col-md-2"><label class="form-label">合約狀態</label>
                                 <select class="form-select" id="f_contract">
                                     <option value="">未簽約</option>
                                     <option value="線上">線上</option>
                                     <option value="紙本">紙本</option>
+                                    <option value="PDF">PDF</option> <!-- 新增 -->
                                 </select>
                             </div>
-                            <!-- 新增欄位：寄出紙本 -->
+
+                            <!-- 寄出紙本 -->
                             <div class="col-md-2"><label class="form-label" style="color:#d63384">寄出紙本</label>
                                 <select class="form-select" id="f_paperSent">
                                     <option value="">否</option>
@@ -75,7 +92,8 @@
                             
                             <div class="col-md-2"><label class="form-label">訂金</label><input type="number" class="form-control" id="f_deposit"></div>
                             <div class="col-md-2"><label class="form-label">尾款</label><input type="number" class="form-control" id="f_balance"></div>
-                            <!-- 新增欄位：繳帳單寄出 -->
+                            
+                            <!-- 繳帳單寄出 -->
                             <div class="col-md-2"><label class="form-label" style="color:#d63384">繳帳單寄出</label>
                                 <select class="form-select" id="f_billSent">
                                     <option value="">否</option>
@@ -85,8 +103,9 @@
 
                             <div class="col-md-1"><label class="form-label">名單</label><select class="form-select" id="f_list"><option value="">-</option><option value="V">V</option></select></div>
                             <div class="col-md-1"><label class="form-label">分房</label><select class="form-select" id="f_room"><option value="">-</option><option value="V">V</option></select></div>
-                            <div class="col-md-1"><label class="form-label">確認1</label><select class="form-select" id="f_cf1"><option value="">-</option><option value="V">V</option></select></div>
-                            <div class="col-md-1"><label class="form-label">確認2</label><select class="form-select" id="f_cf2"><option value="">-</option><option value="V">V</option></select></div>
+                            
+                            <!-- 修改：移除確認1、2，改為備註 -->
+                            <div class="col-md-3"><label class="form-label">備註</label><input type="text" class="form-control" id="f_note" placeholder="備註事項..."></div>
                         </div>
                         <div class="mt-3 text-center">
                             <button type="submit" class="btn btn-primary w-25">儲存紀錄</button>
@@ -113,14 +132,13 @@
                     <th>實際業績</th>
                     <th>訂編</th>
                     <th>合約</th>
-                    <th style="background-color: #6610f2;">寄出紙本</th> <!-- 新增 -->
+                    <th class="th-highlight">寄出紙本</th>
                     <th>訂金</th>
                     <th>尾款</th>
-                    <th style="background-color: #6610f2;">繳帳單寄出</th> <!-- 新增 -->
+                    <th class="th-highlight">繳帳單寄出</th>
                     <th>名單</th>
                     <th>分房</th>
-                    <th>確認1</th>
-                    <th>確認2</th>
+                    <th>備註</th> <!-- 修改：原本是確認1、確認2 -->
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -131,11 +149,11 @@
 </div>
 
 <script>
-    // 定義欄位名稱 (對應 CSV Header)
+    // 定義欄位名稱 (對應 CSV Header，已更新)
     const headers = [
         "出發日期", "行程", "客人代表", "電話號碼", "人數", 
         "預估業績", "實際業績", "訂編", "合約", "寄出紙本", 
-        "訂金", "尾款", "繳帳單寄出", "名單", "分房", "確認1", "確認2"
+        "訂金", "尾款", "繳帳單寄出", "名單", "分房", "備註"
     ];
 
     // 初始化資料
@@ -166,7 +184,7 @@
             // 產生資料欄位
             let dataTd = `
                 <td>${row.date}</td>
-                <td>${row.tour}</td>
+                <td class="text-left">${row.tour}</td>
                 <td>${row.name}</td>
                 <td>${row.phone}</td>
                 <td>${row.pax}</td>
@@ -180,8 +198,7 @@
                 <td class="${row.billSent === 'V' ? 'status-v' : ''}">${row.billSent || ''}</td>
                 <td class="${row.list === 'V' ? 'status-v' : ''}">${row.list}</td>
                 <td class="${row.room === 'V' ? 'status-v' : ''}">${row.room}</td>
-                <td class="${row.cf1 === 'V' ? 'status-v' : ''}">${row.cf1}</td>
-                <td class="${row.cf2 === 'V' ? 'status-v' : ''}">${row.cf2}</td>
+                <td class="text-left">${row.note || ''}</td>
             `;
 
             tr.innerHTML = btnTd + dataTd;
@@ -207,14 +224,14 @@
             actRev: document.getElementById('f_actRev').value,
             bookingId: document.getElementById('f_bookingId').value,
             contract: document.getElementById('f_contract').value,
-            paperSent: document.getElementById('f_paperSent').value, // 新增
+            paperSent: document.getElementById('f_paperSent').value,
             deposit: document.getElementById('f_deposit').value,
             balance: document.getElementById('f_balance').value,
-            billSent: document.getElementById('f_billSent').value, // 新增
+            billSent: document.getElementById('f_billSent').value,
             list: document.getElementById('f_list').value,
             room: document.getElementById('f_room').value,
-            cf1: document.getElementById('f_cf1').value,
-            cf2: document.getElementById('f_cf2').value
+            // 修改：儲存備註
+            note: document.getElementById('f_note').value
         };
 
         const editIndex = document.getElementById('editIndex').value;
@@ -249,14 +266,14 @@
         document.getElementById('f_estRev').value = row.estRev;
         document.getElementById('f_actRev').value = row.actRev;
         document.getElementById('f_contract').value = row.contract;
-        document.getElementById('f_paperSent').value = row.paperSent; // 新增
+        document.getElementById('f_paperSent').value = row.paperSent;
         document.getElementById('f_deposit').value = row.deposit;
         document.getElementById('f_balance').value = row.balance;
-        document.getElementById('f_billSent').value = row.billSent; // 新增
+        document.getElementById('f_billSent').value = row.billSent;
         document.getElementById('f_list').value = row.list;
         document.getElementById('f_room').value = row.room;
-        document.getElementById('f_cf1').value = row.cf1;
-        document.getElementById('f_cf2').value = row.cf2;
+        // 修改：讀取備註，若舊資料有 cf1/cf2 則相容顯示 (這裡直接讀取 note)
+        document.getElementById('f_note').value = row.note || '';
 
         document.getElementById('editIndex').value = index;
         
@@ -322,14 +339,13 @@
                 row.actRev,
                 row.bookingId,
                 row.contract,
-                row.paperSent, // 新增
+                row.paperSent,
                 row.deposit,
                 row.balance,
-                row.billSent, // 新增
+                row.billSent,
                 row.list,
                 row.room,
-                row.cf1,
-                row.cf2
+                `"${row.note || ''}"` // 修改：匯出備註
             ];
             csvContent += rowArray.join(",") + "\n";
         });
@@ -357,16 +373,16 @@
             const text = e.target.result;
             const rows = text.split("\n");
             
-            // 跳過標題列，從第一行開始
-            // 注意：這裡假設匯入的格式與匯出的格式完全一致
+            // 跳過標題列
             let newData = [];
             for (let i = 1; i < rows.length; i++) {
                 let cols = rows[i].split(",");
                 if (cols.length < 5) continue; // 過濾空行
 
-                // 清理 CSV 格式 (移除引號、移除電話的單引號)
+                // 清理 CSV 格式
                 const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/^'/, '').trim() : '';
 
+                // 注意：這裡需對應 CSV 欄位順序
                 let obj = {
                     date: clean(cols[0]),
                     tour: clean(cols[1]),
@@ -377,14 +393,13 @@
                     actRev: clean(cols[6]),
                     bookingId: clean(cols[7]),
                     contract: clean(cols[8]),
-                    paperSent: clean(cols[9]), // 新增
+                    paperSent: clean(cols[9]),
                     deposit: clean(cols[10]),
                     balance: clean(cols[11]),
-                    billSent: clean(cols[12]), // 新增
+                    billSent: clean(cols[12]),
                     list: clean(cols[13]),
                     room: clean(cols[14]),
-                    cf1: clean(cols[15]),
-                    cf2: clean(cols[16])
+                    note: clean(cols[15]) // 修改：匯入備註
                 };
                 newData.push(obj);
             }
@@ -396,7 +411,6 @@
             }
             saveToLocal();
             renderTable();
-            // 清空 input 讓同一檔案可重複選取
             input.value = ''; 
         };
         reader.readAsText(file);
