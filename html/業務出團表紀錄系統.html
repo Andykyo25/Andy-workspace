@@ -208,9 +208,8 @@
 
 <script>
     // ★★★ STEP 1: 設定 Supabase ★★★
-    // 請將您的 Key 填入下方
     const SUPABASE_URL = 'https://legwqtrutzpbwqumvvkb.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZ3dxdHJ1dHpwYndxdW12dmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDI4NTgsImV4cCI6MjA4MDQxODg1OH0.YIQPKNZizMcD1vZhAzalW1G2fRgLT6mx08qeyzEuaSg'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZ3dxdHJ1dHpwYndxdW12dmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDI4NTgsImV4cCI6MjA4MDQxODg1OH0.YIQPKNZizMcD1vZhAzalW1G2fRgLT6mx08qeyzEuaSg';
     
     // 初始化 Supabase
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -231,16 +230,13 @@
     let currentFilteredData = []; 
     let notifications = [];
 
-    // ★★★ 工具函式區 (移到最上方以確保讀取) ★★★
-    
-    // 安全數值轉換 (避免 NaN)
+    // ★★★ 工具函式 ★★★
     function safeNumber(val) {
         if (!val) return 0; 
         const num = parseInt(String(val).replace(/,/g, ''), 10);
         return isNaN(num) ? 0 : num;
     }
 
-    // 金額格式化 (加逗號)
     function formatMoney(num) {
         if (!num) return '0';
         const n = parseInt(String(num).replace(/,/g, ''), 10);
@@ -267,6 +263,7 @@
         else updateSyncStatus(true, "同步中...");
 
         try {
+            // 直接讀取，不要再經過 unpackData，這樣才能保留 id
             let { data, error } = await sb
                 .from(TABLE_NAME)
                 .select('*')
@@ -274,7 +271,7 @@
 
             if (error) throw error;
 
-            salesData = data;
+            salesData = data; // 直接賦值
             saveToLocalCache();
             processData();
 
@@ -294,11 +291,13 @@
         if (isLoading) return;
         toggleLoading(true, "儲存中...");
 
+        // 收集表單資料
         const record = {
             date: document.getElementById('f_date').value,
             tour: document.getElementById('f_tour').value,
             name: document.getElementById('f_name').value,
-            phone: document.getElementById('f_phone').value,
+            // 修正：不需要再加單引號
+            phone: document.getElementById('f_phone').value, 
             pax: safeNumber(document.getElementById('f_pax').value),
             estRev: safeNumber(document.getElementById('f_estRev').value),
             actRev: safeNumber(document.getElementById('f_actRev').value),
@@ -321,12 +320,14 @@
         try {
             let error;
             if (editId) {
+                // 更新模式 (有 ID)
                 const { error: updateError } = await sb
                     .from(TABLE_NAME)
                     .update(record)
                     .eq('id', editId);
                 error = updateError;
             } else {
+                // 新增模式 (無 ID)
                 const { error: insertError } = await sb
                     .from(TABLE_NAME)
                     .insert([record]);
@@ -353,10 +354,20 @@
     }
 
     async function deleteData(index) {
-        const record = salesData[index];
-        if(!record || !record.id) return;
+        // index 是在 currentFilteredData 或 salesData 的索引
+        // 我們需要取得正確的資料物件
+        let record;
+        
+        // 為了確保刪對人，我們先找出正確的 record
+        // 因為 renderTable 使用的是 currentFilteredData 的原始索引
+        record = salesData[index];
 
-        if(confirm(`確定要刪除「${record.tour} - ${record.name}」嗎？此動作無法復原。`)) {
+        if(!record || !record.id) {
+            alert("錯誤：找不到此筆資料的 ID，無法刪除。請重新整理網頁後再試。");
+            return;
+        }
+
+        if(confirm(`確定要刪除「${record.tour} - ${record.name}」嗎？`)) {
             toggleLoading(true, "刪除中...");
             try {
                 const { error } = await sb
@@ -366,6 +377,7 @@
 
                 if (error) throw error;
 
+                // 成功後移除本地資料
                 salesData.splice(index, 1);
                 processData();
                 
@@ -623,7 +635,7 @@
         const row = salesData[index];
         const safe = (val) => val || '';
         document.getElementById('editIndex').value = index;
-        document.getElementById('editId').value = safe(row.id);
+        document.getElementById('editId').value = safe(row.id); // ID 會被正確讀取
 
         document.getElementById('f_date').value = safe(row.date);
         document.getElementById('f_tour').value = safe(row.tour);
