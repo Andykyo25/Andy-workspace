@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>業務出團表紀錄系統 v4.1 (Supabase)</title>
+    <title>業務出團表紀錄系統 v4.3 (Fixed)</title>
     <!-- 引入 Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -42,7 +42,6 @@
 <div class="container-fluid">
     <h2 class="mb-3 text-center text-secondary"><i class="fas fa-plane-departure"></i> 業務出團管理系統</h2>
 
-    <!-- 操作區塊 -->
     <div class="row mb-3">
         <div class="col-12 text-end d-flex align-items-center justify-content-end flex-wrap gap-2">
             <button class="btn btn-outline-secondary btn-notification" onclick="openNotificationModal()">
@@ -62,17 +61,15 @@
         </div>
         <div class="card-body">
             <form id="recordForm" onsubmit="event.preventDefault(); saveRecord();">
-                <input type="hidden" id="editIndex" value="-1"> <!-- 這裡存的是陣列索引 -->
-                <input type="hidden" id="editId" value="">     <!-- 這裡存 Supabase ID -->
+                <input type="hidden" id="editIndex" value="-1">
+                <input type="hidden" id="editId" value="">
                 <div class="row g-2">
                     <div class="col-12 col-md-2"><label class="form-label">出發日期</label><input type="date" class="form-control" id="f_date" required></div>
                     <div class="col-12 col-md-3"><label class="form-label">行程</label><input type="text" class="form-control" id="f_tour" placeholder="例如: 芬蘭破冰船15日" required></div>
                     <div class="col-6 col-md-2"><label class="form-label">客人代表</label><input type="text" class="form-control" id="f_name" required></div>
                     <div class="col-6 col-md-2"><label class="form-label">電話號碼</label><input type="text" class="form-control" id="f_phone"></div>
-                    
                     <div class="col-6 col-md-1"><label class="form-label">人數</label><input type="number" class="form-control" id="f_pax" min="1"></div>
                     <div class="col-6 col-md-2"><label class="form-label">訂編</label><input type="text" class="form-control" id="f_bookingId"></div>
-                    
                     <div class="col-6 col-md-2"><label class="form-label">預估業績</label><input type="number" class="form-control" id="f_estRev"></div>
                     <div class="col-6 col-md-2"><label class="form-label">實際業績</label><input type="number" class="form-control" id="f_actRev"></div>
                     
@@ -97,7 +94,6 @@
                     
                     <div class="col-6 col-md-2"><label class="form-label">訂金</label><input type="number" class="form-control" id="f_deposit"></div>
                     <div class="col-6 col-md-2"><label class="form-label">尾款</label><input type="number" class="form-control" id="f_balance"></div>
-                    
                     <div class="col-6 col-md-2"><label class="form-label text-primary">繳帳單</label>
                         <select class="form-select" id="f_billSent"><option value="">否</option><option value="V">V</option></select>
                     </div>
@@ -210,13 +206,14 @@
 </div>
 
 <script>
-    // ★★★ STEP 1: 設定 Supabase ★★★
-    // 請到 Supabase Dashboard > Settings > API 複製 URL 和 Key
+    // ★★★ STEP 1: 設定 Supabase (請換成您的資料) ★★★
+    // 注意：SUPABASE_KEY 必須是以 'ey' 開頭的 anon key
     const SUPABASE_URL = 'https://legwqtrutzpbwqumvvkb.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_RE8HpfduURWhNVqiSJDeXA_pHhjDBfZ';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZ3dxdHJ1dHpwYndxdW12dmtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDI4NTgsImV4cCI6MjA4MDQxODg1OH0.YIQPKNZizMcD1vZhAzalW1G2fRgLT6mx08qeyzEuaSg'; 
     
     // 初始化 Supabase
-    const supabase = supa.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 修正點：使用 supabase.createClient 而不是 supa.createClient
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const TABLE_NAME = 'sales_records';
 
     // 定義欄位 (CSV 匯出用)
@@ -235,14 +232,14 @@
     let notifications = [];
 
     window.onload = function() {
-        // 先載入本地快取 (提升體驗)
+        // 先載入本地快取
         const cachedData = localStorage.getItem('salesGroupData_Cache');
         if (cachedData) {
             salesData = JSON.parse(cachedData);
-            processData(); // 排序、統計、分頁
-            loadFromCloud(false); // 背景更新
+            processData(); 
+            loadFromCloud(false); 
         } else {
-            loadFromCloud(true); // 全螢幕載入
+            loadFromCloud(true); 
         }
     };
 
@@ -254,12 +251,14 @@
 
         try {
             // 從 Supabase 讀取所有資料
-            let { data, error } = await supabase
+            let { data, error } = await sb
                 .from(TABLE_NAME)
                 .select('*')
-                .order('date', { ascending: true }); // 直接用 DB 排序
+                .order('date', { ascending: true });
 
             if (error) throw error;
+
+            console.log("Loaded data:", data); // 除錯用：在 Console 顯示抓到的資料
 
             salesData = data;
             saveToLocalCache();
@@ -271,18 +270,16 @@
         } catch (err) {
             console.error('Error loading:', err);
             if(isBlocking) {
-                alert("讀取失敗：" + err.message);
+                alert("讀取失敗：" + err.message + "\n請檢查 Key 是否正確且 RLS 已關閉");
                 toggleLoading(false);
             }
         }
     }
 
-    // 儲存或更新 (Atomic Operation)
     async function saveRecord() {
         if (isLoading) return;
         toggleLoading(true, "儲存中...");
 
-        // 收集表單資料
         const record = {
             date: document.getElementById('f_date').value,
             tour: document.getElementById('f_tour').value,
@@ -310,15 +307,13 @@
         try {
             let error;
             if (editId) {
-                // 更新模式
-                const { error: updateError } = await supabase
+                const { error: updateError } = await sb
                     .from(TABLE_NAME)
                     .update(record)
                     .eq('id', editId);
                 error = updateError;
             } else {
-                // 新增模式
-                const { error: insertError } = await supabase
+                const { error: insertError } = await sb
                     .from(TABLE_NAME)
                     .insert([record]);
                 error = insertError;
@@ -326,11 +321,9 @@
 
             if (error) throw error;
 
-            // 成功後重新讀取 (確保資料一致)
             await loadFromCloud(false);
             resetForm();
             
-            // 如果新增資料，切換到該月份
             if(record.date) {
                 currentTab = record.date.substring(0, 7);
                 renderTabs();
@@ -346,21 +339,19 @@
     }
 
     async function deleteData(index) {
-        // index 是在 salesData 陣列中的索引
         const record = salesData[index];
         if(!record || !record.id) return;
 
         if(confirm(`確定要刪除「${record.tour} - ${record.name}」嗎？此動作無法復原。`)) {
             toggleLoading(true, "刪除中...");
             try {
-                const { error } = await supabase
+                const { error } = await sb
                     .from(TABLE_NAME)
                     .delete()
                     .eq('id', record.id);
 
                 if (error) throw error;
 
-                // 本地先刪除以提升反應速度，再背景同步
                 salesData.splice(index, 1);
                 processData();
                 
@@ -373,10 +364,9 @@
         }
     }
 
-    // --- 資料處理與 UI 邏輯 ---
+    // --- 資料處理與 UI ---
 
     function processData() {
-        // 因為 Supabase 已經排序過了，這裡主要做通知檢查和介面渲染
         saveToLocalCache();
         checkNotifications();
         renderTabs();
