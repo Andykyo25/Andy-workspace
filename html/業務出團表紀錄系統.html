@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>業務出團表紀錄系統 v3.9 (SIM Alert)</title>
+    <title>業務出團表紀錄系統 v4.0 (Mobile Optimized)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -46,7 +46,9 @@
             justify-content: space-around;
             align-items: center;
             border-left: 5px solid #0d6efd;
+            flex-wrap: wrap; /* 手機版自動換行 */
         }
+        .summary-item { margin: 5px; } /* 手機版間距 */
         .summary-item h5 { margin: 0; font-size: 0.9rem; color: #6c757d; }
         .summary-item .value { font-size: 1.5rem; font-weight: bold; color: #212529; }
         .text-success-dark { color: #198754 !important; }
@@ -69,6 +71,8 @@
             padding: 10px;
             background: #f8f9fa;
             border-radius: 5px;
+            flex-wrap: wrap; /* 手機版換行 */
+            gap: 10px;
         }
 
         #syncStatus {
@@ -93,9 +97,8 @@
             border-radius: 50%;
             background-color: #dc3545;
             color: white;
-            display: none; /* 預設隱藏 */
+            display: none; 
         }
-        /* 高亮顯示行 */
         .highlight-row {
             background-color: #fff3cd !important;
             transition: background-color 2s ease-out;
@@ -109,23 +112,23 @@
 
     <!-- 操作區塊 -->
     <div class="row mb-3">
-        <div class="col-md-12 text-end d-flex align-items-center justify-content-end">
+        <div class="col-12 text-end d-flex align-items-center justify-content-end flex-wrap gap-2">
             <!-- 消息中心按鈕 -->
             <button class="btn btn-outline-secondary btn-notification" onclick="openNotificationModal()">
                 <i class="fas fa-bell"></i>
                 <span id="notifBadge" class="notification-badge">0</span>
             </button>
 
-            <span id="syncStatus"></span>
-            <button class="btn btn-outline-success btn-sm me-1" onclick="exportToCSV()"><i class="fas fa-file-excel"></i> 匯出 Excel</button>
-            <label class="btn btn-outline-warning btn-sm btn-file me-1">
-                <i class="fas fa-file-upload"></i> 匯入 CSV <input type="file" id="csvFileInput" style="display: none;" onchange="importFromCSV(this)">
+            <span id="syncStatus" class="d-none d-md-inline"></span> <!-- 手機版隱藏文字，節省空間 -->
+            <button class="btn btn-outline-success btn-sm" onclick="exportToCSV()"><i class="fas fa-file-excel"></i> 匯出</button>
+            <label class="btn btn-outline-warning btn-sm btn-file">
+                <i class="fas fa-file-upload"></i> 匯入 <input type="file" id="csvFileInput" style="display: none;" onchange="importFromCSV(this)">
             </label>
             <button class="btn btn-outline-danger btn-sm" onclick="clearAllData()"><i class="fas fa-trash"></i> 清空</button>
         </div>
     </div>
 
-    <!-- 輸入表單 -->
+    <!-- 輸入表單 (Grid 優化版) -->
     <div class="card form-card">
         <div class="card-header">
             <strong><i class="fas fa-edit"></i> 資料輸入 / 編輯區</strong>
@@ -134,17 +137,21 @@
             <form id="recordForm" onsubmit="event.preventDefault(); saveRecord();">
                 <input type="hidden" id="editIndex" value="-1">
                 <div class="row g-2">
-                    <div class="col-md-2"><label class="form-label">出發日期</label><input type="date" class="form-control" id="f_date" required></div>
-                    <div class="col-md-3"><label class="form-label">行程</label><input type="text" class="form-control" id="f_tour" placeholder="例如: 芬蘭破冰船15日" required></div>
-                    <div class="col-md-2"><label class="form-label">客人代表</label><input type="text" class="form-control" id="f_name" required></div>
-                    <div class="col-md-2"><label class="form-label">電話號碼</label><input type="text" class="form-control" id="f_phone"></div>
-                    <div class="col-md-1"><label class="form-label">人數</label><input type="number" class="form-control" id="f_pax" min="1"></div>
-                    <div class="col-md-2"><label class="form-label">訂編</label><input type="text" class="form-control" id="f_bookingId"></div>
+                    <!-- 基礎資訊 -->
+                    <div class="col-12 col-md-2"><label class="form-label">出發日期</label><input type="date" class="form-control" id="f_date" required></div>
+                    <div class="col-12 col-md-3"><label class="form-label">行程</label><input type="text" class="form-control" id="f_tour" placeholder="例如: 芬蘭破冰船15日" required></div>
+                    <div class="col-6 col-md-2"><label class="form-label">客人代表</label><input type="text" class="form-control" id="f_name" required></div>
+                    <div class="col-6 col-md-2"><label class="form-label">電話號碼</label><input type="text" class="form-control" id="f_phone"></div>
                     
-                    <div class="col-md-2"><label class="form-label">預估業績</label><input type="number" class="form-control" id="f_estRev"></div>
-                    <div class="col-md-2"><label class="form-label">實際業績</label><input type="number" class="form-control" id="f_actRev"></div>
+                    <!-- 數字類：手機版併排 -->
+                    <div class="col-6 col-md-1"><label class="form-label">人數</label><input type="number" class="form-control" id="f_pax" min="1"></div>
+                    <div class="col-6 col-md-2"><label class="form-label">訂編</label><input type="text" class="form-control" id="f_bookingId"></div>
                     
-                    <div class="col-md-2"><label class="form-label">合約狀態</label>
+                    <div class="col-6 col-md-2"><label class="form-label">預估業績</label><input type="number" class="form-control" id="f_estRev"></div>
+                    <div class="col-6 col-md-2"><label class="form-label">實際業績</label><input type="number" class="form-control" id="f_actRev"></div>
+                    
+                    <!-- 狀態類：手機版 2~3個一排，節省高度 -->
+                    <div class="col-6 col-md-2"><label class="form-label">合約狀態</label>
                         <select class="form-select" id="f_contract">
                             <option value="">未簽約</option>
                             <option value="線上">線上</option>
@@ -152,31 +159,36 @@
                             <option value="PDF">PDF</option>
                         </select>
                     </div>
-                    <div class="col-md-2"><label class="form-label text-primary">合約上傳</label>
-                        <select class="form-select" id="f_contractUploaded"><option value="">否</option><option value="V">是 (V)</option></select>
+                    
+                    <!-- 打勾選項區 (手機版 3格一排) -->
+                    <div class="col-4 col-md-2"><label class="form-label text-primary" style="font-size:0.8rem">合約上傳</label>
+                        <select class="form-select form-select-sm" id="f_contractUploaded"><option value="">否</option><option value="V">V</option></select>
                     </div>
-                    <div class="col-md-2"><label class="form-label text-primary">寄出紙本</label>
-                        <select class="form-select" id="f_paperSent"><option value="">否</option><option value="V">是 (V)</option></select>
+                    <div class="col-4 col-md-2"><label class="form-label text-primary" style="font-size:0.8rem">寄出紙本</label>
+                        <select class="form-select form-select-sm" id="f_paperSent"><option value="">否</option><option value="V">V</option></select>
                     </div>
-                    <div class="col-md-2"><label class="form-label text-danger">行前通知</label>
-                        <select class="form-select" id="f_preTripNotify"><option value="">否</option><option value="V">是 (V)</option></select>
+                    <div class="col-4 col-md-2"><label class="form-label text-danger" style="font-size:0.8rem">行前通知</label>
+                        <select class="form-select form-select-sm" id="f_preTripNotify"><option value="">否</option><option value="V">V</option></select>
                     </div>
                     
-                    <div class="col-md-2"><label class="form-label">訂金</label><input type="number" class="form-control" id="f_deposit"></div>
-                    <div class="col-md-2"><label class="form-label">尾款</label><input type="number" class="form-control" id="f_balance"></div>
-                    <div class="col-md-2"><label class="form-label text-primary">繳帳單</label>
-                        <select class="form-select" id="f_billSent"><option value="">否</option><option value="V">是 (V)</option></select>
+                    <!-- 金額 -->
+                    <div class="col-6 col-md-2"><label class="form-label">訂金</label><input type="number" class="form-control" id="f_deposit"></div>
+                    <div class="col-6 col-md-2"><label class="form-label">尾款</label><input type="number" class="form-control" id="f_balance"></div>
+                    
+                    <!-- 雜項 (手機版 3格一排) -->
+                    <div class="col-6 col-md-2"><label class="form-label text-primary">繳帳單</label>
+                        <select class="form-select" id="f_billSent"><option value="">否</option><option value="V">V</option></select>
                     </div>
 
-                    <div class="col-md-1"><label class="form-label">名單</label><select class="form-select" id="f_list"><option value="">-</option><option value="V">V</option></select></div>
-                    <div class="col-md-1"><label class="form-label">分房</label><select class="form-select" id="f_room"><option value="">-</option><option value="V">V</option></select></div>
-                    <div class="col-md-1"><label class="form-label">網卡</label><select class="form-select" id="f_simCard"><option value="">-</option><option value="V">V</option></select></div>
+                    <div class="col-4 col-md-1"><label class="form-label">名單</label><select class="form-select form-select-sm" id="f_list"><option value="">-</option><option value="V">V</option></select></div>
+                    <div class="col-4 col-md-1"><label class="form-label">分房</label><select class="form-select form-select-sm" id="f_room"><option value="">-</option><option value="V">V</option></select></div>
+                    <div class="col-4 col-md-1"><label class="form-label">網卡</label><select class="form-select form-select-sm" id="f_simCard"><option value="">-</option><option value="V">V</option></select></div>
                     
-                    <div class="col-md-3"><label class="form-label">備註</label><input type="text" class="form-control" id="f_note" placeholder="備註事項..."></div>
+                    <div class="col-12 col-md-3"><label class="form-label">備註</label><input type="text" class="form-control" id="f_note" placeholder="備註事項..."></div>
                 </div>
                 <div class="mt-3 text-center">
-                    <button type="submit" class="btn btn-primary w-25">儲存紀錄</button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">重置</button>
+                    <button type="submit" class="btn btn-primary w-50 w-md-25">儲存紀錄</button>
+                    <button type="button" class="btn btn-secondary ms-2" onclick="resetForm()">重置</button>
                 </div>
             </form>
         </div>
@@ -194,11 +206,11 @@
             <div class="value" id="sumPax">0</div>
         </div>
         <div class="summary-item text-center">
-            <h5><i class="fas fa-sack-dollar"></i> 預估業績總額</h5>
+            <h5><i class="fas fa-sack-dollar"></i> 預估業績</h5>
             <div class="value text-primary" id="sumEst">0</div>
         </div>
         <div class="summary-item text-center">
-            <h5><i class="fas fa-coins"></i> 實際業績總額</h5>
+            <h5><i class="fas fa-coins"></i> 實際業績</h5>
             <div class="value text-success-dark" id="sumAct">0</div>
         </div>
     </div>
@@ -207,18 +219,18 @@
     <div class="table-container">
         <div class="pagination-controls">
             <div class="d-flex align-items-center">
-                <span class="me-2">每頁顯示:</span>
-                <select class="form-select form-select-sm" id="rowsPerPage" style="width: 80px;" onchange="changeRowsPerPage()">
+                <span class="me-2 text-nowrap">每頁:</span>
+                <select class="form-select form-select-sm" id="rowsPerPage" style="width: 70px;" onchange="changeRowsPerPage()">
                     <option value="10">10</option>
                     <option value="20">20</option>
                     <option value="50">50</option>
-                    <option value="9999">全部</option>
+                    <option value="9999">全</option>
                 </select>
-                <span class="ms-3 text-muted" id="pageInfo">第 1 頁 / 共 1 頁</span>
+                <span class="ms-2 text-muted small" id="pageInfo">1/1</span>
             </div>
             <div>
-                <button class="btn btn-sm btn-outline-secondary" onclick="changePage(-1)" id="btnPrev"><i class="fas fa-chevron-left"></i> 上一頁</button>
-                <button class="btn btn-sm btn-outline-secondary ms-1" onclick="changePage(1)" id="btnNext">下一頁 <i class="fas fa-chevron-right"></i></button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="changePage(-1)" id="btnPrev"><i class="fas fa-chevron-left"></i></button>
+                <button class="btn btn-sm btn-outline-secondary ms-1" onclick="changePage(1)" id="btnNext"><i class="fas fa-chevron-right"></i></button>
             </div>
         </div>
 
@@ -294,7 +306,7 @@
     let currentPage = 1;
     let rowsPerPage = 10;
     let currentFilteredData = []; 
-    let notifications = []; // 存放提醒事項
+    let notifications = [];
 
     window.onload = function() {
         const cachedData = localStorage.getItem('salesGroupData_Cache');
@@ -370,20 +382,18 @@
         if (isBlocking) {
             toggleLoading(true, "資料讀取中...");
         } else {
-            updateSyncStatus(true, "雲端同步中...");
+            updateSyncStatus(true, "同步中...");
         }
 
         fetch(API_URL)
             .then(response => response.json())
             .then(rows => {
                 salesData = unpackData(rows);
-                
                 saveToLocalCache();
                 sortData();
                 checkNotifications(); 
                 renderTabs();
                 renderTable();
-
                 if (isBlocking) {
                     toggleLoading(false);
                 } else {
@@ -402,7 +412,7 @@
     }
 
     function saveToCloud() {
-        toggleLoading(true, "資料儲存中...");
+        toggleLoading(true, "儲存中...");
         const packedData = packData(salesData);
         fetch(API_URL, {
             method: "POST",
@@ -451,13 +461,12 @@
         }
     }
 
-    // --- 消息中心邏輯 (含網卡提醒) ---
+    // --- 消息中心 ---
     function checkNotifications() {
         notifications = [];
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        // 1. 檢查行程緊急事項 (5天內)
         salesData.forEach((row, index) => {
             if (!row.date) return;
             const tripDate = new Date(row.date);
@@ -486,12 +495,11 @@
             }
         });
 
-        // 2. 檢查固定網卡提醒 (每月1號、15號前2天)
-        // 檢查本月15號
+        // 網卡固定提醒
         let target15 = new Date(today.getFullYear(), today.getMonth(), 15);
         let diff15 = Math.ceil((target15 - today) / (1000 * 60 * 60 * 24));
         if (diff15 >= 0 && diff15 <= 2) {
-            notifications.unshift({ // 加在最前面
+            notifications.unshift({ 
                 type: 'system',
                 date: `${today.getMonth()+1}/15`,
                 tour: '系統提醒',
@@ -501,11 +509,10 @@
             });
         }
 
-        // 檢查下個月1號
         let target1 = new Date(today.getFullYear(), today.getMonth() + 1, 1);
         let diff1 = Math.ceil((target1 - today) / (1000 * 60 * 60 * 24));
         if (diff1 >= 0 && diff1 <= 2) {
-            notifications.unshift({ // 加在最前面
+            notifications.unshift({ 
                 type: 'system',
                 date: `${target1.getMonth()+1}/1`,
                 tour: '系統提醒',
@@ -515,7 +522,6 @@
             });
         }
 
-        // 更新鈴鐺紅點
         const badge = document.getElementById('notifBadge');
         if (notifications.length > 0) {
             badge.innerText = notifications.length;
@@ -539,7 +545,6 @@
                 li.className = 'list-group-item list-group-item-action';
                 
                 if (item.type === 'system') {
-                    // 系統提醒樣式 (藍色)
                     li.style.cursor = 'default';
                     li.innerHTML = `
                         <div class="d-flex w-100 justify-content-between">
@@ -549,7 +554,6 @@
                         <p class="mb-1 text-muted">請確認本月網卡採購與結算。</p>
                     `;
                 } else {
-                    // 行程提醒樣式 (紅色，可點擊)
                     li.style.cursor = 'pointer';
                     li.innerHTML = `
                         <div class="d-flex w-100 justify-content-between">
@@ -697,7 +701,7 @@
         const endIndex = startIndex + rowsPerPage;
         const pageData = currentFilteredData.slice(startIndex, endIndex);
 
-        document.getElementById('pageInfo').innerText = `第 ${currentPage} 頁 / 共 ${totalPages} 頁 (共 ${totalRows} 筆)`;
+        document.getElementById('pageInfo').innerText = `${currentPage}/${totalPages}頁 (共${totalRows}筆)`;
         document.getElementById('btnPrev').disabled = (currentPage === 1);
         document.getElementById('btnNext').disabled = (currentPage === totalPages);
 
@@ -843,7 +847,7 @@
         document.getElementById('f_billSent').value = safe(row.billSent);
         document.getElementById('f_list').value = safe(row.list);
         document.getElementById('f_room').value = safe(row.room);
-        document.getElementById('f_simCard').value = safe(row.simCard); 
+        document.getElementById('f_simCard').value = safe(row.simCard);
         document.getElementById('f_note').value = safe(row.note);
 
         document.getElementById('editIndex').value = index;
