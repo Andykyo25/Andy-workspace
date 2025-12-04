@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>業務出團表紀錄系統 v3.3 (Pagination)</title>
+    <title>業務出團表紀錄系統 v3.4</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -364,7 +364,6 @@
         let totalEst = 0;
         let totalAct = 0;
         
-        // 建立包含原始索引的臨時陣列 (為了編輯功能)
         let indexedData = salesData.map((item, index) => ({ ...item, originalIndex: index }));
 
         if (currentTab === 'ALL') {
@@ -373,7 +372,7 @@
             currentFilteredData = indexedData.filter(row => row.date && row.date.substring(0, 7) === currentTab);
         }
 
-        // 計算統計 (針對篩選後的資料)
+        // 計算統計
         currentFilteredData.forEach(row => {
             totalPax += safeNumber(row.pax);
             totalEst += safeNumber(row.estRev);
@@ -389,14 +388,12 @@
         const totalRows = currentFilteredData.length;
         const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
         
-        // 確保目前頁數不超過總頁數
         if (currentPage > totalPages) currentPage = totalPages;
 
         const startIndex = (currentPage - 1) * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const pageData = currentFilteredData.slice(startIndex, endIndex);
 
-        // 更新分頁資訊 UI
         document.getElementById('pageInfo').innerText = `第 ${currentPage} 頁 / 共 ${totalPages} 頁 (共 ${totalRows} 筆)`;
         document.getElementById('btnPrev').disabled = (currentPage === 1);
         document.getElementById('btnNext').disabled = (currentPage === totalPages);
@@ -406,9 +403,10 @@
         today.setHours(0,0,0,0);
 
         pageData.forEach((row) => {
-            // 使用原始陣列的索引 (row.originalIndex)
             const index = row.originalIndex; 
+            const safe = (val) => val || '';
 
+            // 日期提醒
             let dateBadge = '';
             if (row.date) {
                 const tripDate = new Date(row.date);
@@ -417,6 +415,12 @@
                 if (diffDays < 0) dateBadge = `<span class="badge bg-secondary badge-date">已出團</span>`;
                 else if (diffDays <= 7) dateBadge = `<span class="badge bg-danger badge-date">剩${diffDays}天</span>`;
                 else if (diffDays <= 30) dateBadge = `<span class="badge bg-warning text-dark badge-date">剩${diffDays}天</span>`;
+            }
+
+            // ★★★ 合約未簽約 紅色顯示邏輯 ★★★
+            let contractDisplay = safe(row.contract);
+            if (contractDisplay === '未簽約') {
+                contractDisplay = `<span class="text-danger fw-bold">${contractDisplay}</span>`;
             }
 
             let tr = document.createElement('tr');
@@ -428,8 +432,6 @@
                     </div>
                 </td>`;
             
-            const safe = (val) => val || '';
-            
             let dataTd = `
                 <td>${safe(row.date)} ${dateBadge}</td>
                 <td class="text-left fw-bold">${safe(row.tour)}</td>
@@ -439,7 +441,7 @@
                 <td>${formatMoney(row.estRev)}</td>
                 <td>${formatMoney(row.actRev)}</td>
                 <td>${safe(row.bookingId)}</td>
-                <td>${safe(row.contract)}</td>
+                <td>${contractDisplay}</td>
                 <td><span class="${row.contractUploaded === 'V' ? 'status-v' : ''}">${safe(row.contractUploaded)}</span></td>
                 <td><span class="${row.paperSent === 'V' ? 'status-v' : ''}">${safe(row.paperSent)}</span></td>
                 <td><span class="${row.preTripNotify === 'V' ? 'status-v' : ''}">${safe(row.preTripNotify)}</span></td>
@@ -491,7 +493,6 @@
 
         if (editIndex === "-1") {
             salesData.push(data);
-            // 新增資料後，切換到該月份並排序
             if(data.date) currentTab = data.date.substring(0, 7);
         } else {
             salesData[editIndex] = data;
@@ -502,7 +503,7 @@
             if(data.date) currentTab = data.date.substring(0, 7);
         }
 
-        sortData(); // 儲存後重新排序
+        sortData(); 
         renderTabs(); 
         renderTable();
         resetForm();
@@ -510,7 +511,6 @@
     }
 
     function editData(index) {
-        // index 是 salesData 的原始索引
         const row = salesData[index];
         const safe = (val) => val || '';
         document.getElementById('f_date').value = safe(row.date);
@@ -617,7 +617,7 @@
             } else {
                 salesData = salesData.concat(newData);
             }
-            sortData(); // 匯入後排序
+            sortData(); 
             renderTabs(); 
             renderTable();
             input.value = ''; 
