@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>業務出團表紀錄系統 v3.1</title>
+    <title>業務出團表紀錄系統 v3.2 (Cloud)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -82,7 +82,7 @@
 <body>
 
 <div class="container-fluid">
-    <h2 class="mb-3 text-center text-secondary"><i class="fas fa-plane-departure"></i> 業務出團管理系統</h2>
+    <h2 class="mb-3 text-center text-secondary"><i class="fas fa-plane-departure"></i> 業務出團管理系統 (Cloud)</h2>
 
     <!-- 操作區塊 -->
     <div class="row mb-3">
@@ -95,7 +95,7 @@
         </div>
     </div>
 
-    <!-- 輸入表單 (改為 Card 固定顯示，不再摺疊) -->
+    <!-- 輸入表單 -->
     <div class="card form-card">
         <div class="card-header">
             <strong><i class="fas fa-edit"></i> 資料輸入 / 編輯區</strong>
@@ -216,19 +216,16 @@
         "訂金", "尾款", "繳帳單寄出", "名單", "分房", "備註"
     ];
 
-    let salesData = []; // 現在資料從雲端抓，初始為空
+    let salesData = []; 
     let currentTab = 'ALL'; 
-    let isLoading = false; // 防止重複送出
+    let isLoading = false; 
 
-    // 頁面載入時，從雲端讀取資料
     window.onload = function() {
-        renderTable(); // 先顯示空表或讀取中
-        loadFromCloud(); // 抓資料
+        renderTable(); 
+        loadFromCloud(); 
     };
 
     // --- 雲端功能區 ---
-
-    // 從 Google Sheet 讀取
     function loadFromCloud() {
         toggleLoading(true, "資料讀取中...");
         fetch(API_URL)
@@ -246,19 +243,15 @@
             });
     }
 
-    // 儲存到 Google Sheet (全量覆蓋)
     function saveToCloud() {
         toggleLoading(true, "資料儲存中...");
-        
-        // 使用 fetch POST 發送資料
         fetch(API_URL, {
             method: "POST",
-            body: JSON.stringify(salesData) // 傳送整個陣列
+            body: JSON.stringify(salesData) 
         })
         .then(response => response.json())
         .then(result => {
             if(result.result === "success") {
-                // 成功
                 toggleLoading(false);
             } else {
                 alert("儲存失敗：" + result.error);
@@ -272,12 +265,10 @@
         });
     }
 
-    // 切換讀取畫面遮罩
     function toggleLoading(show, msg) {
         isLoading = show;
         let loader = document.getElementById('loadingOverlay');
         if (!loader) {
-            // 如果沒有遮罩元素，動態建立一個
             loader = document.createElement('div');
             loader.id = 'loadingOverlay';
             loader.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;font-size:1.5rem;font-weight:bold;color:#0d6efd;";
@@ -287,7 +278,16 @@
         loader.style.display = show ? 'flex' : 'none';
     }
 
-    // --- 以下為原本的邏輯，稍微修改儲存觸發點 ---
+    // --- 核心邏輯 ---
+
+    // ★★★ 安全數值轉換函數 (避免 NaN) ★★★
+    function safeNumber(val) {
+        if (!val) return 0; // 處理 undefined, null, ""
+        // 移除逗號 (以防資料有千分位符號)，並轉為整數
+        const num = parseInt(String(val).replace(/,/g, ''), 10);
+        // 如果轉出來是 NaN，回傳 0
+        return isNaN(num) ? 0 : num;
+    }
 
     function renderTabs() {
         const tabsContainer = document.getElementById('monthTabs');
@@ -325,9 +325,10 @@
                 if (!row.date || row.date.substring(0, 7) !== currentTab) return; 
             }
 
-            totalPax += parseInt(row.pax || 0);
-            totalEst += parseInt(row.estRev || 0);
-            totalAct += parseInt(row.actRev || 0);
+            // ★★★ 使用 safeNumber 避免 NaN ★★★
+            totalPax += safeNumber(row.pax);
+            totalEst += safeNumber(row.estRev);
+            totalAct += safeNumber(row.actRev);
 
             let dateBadge = '';
             if (row.date) {
@@ -348,7 +349,6 @@
                     </div>
                 </td>`;
             
-            // 確保每個欄位都有值，避免 undefined
             const safe = (val) => val || '';
             
             let dataTd = `
@@ -381,9 +381,12 @@
         document.getElementById('sumAct').textContent = formatMoney(totalAct);
     }
 
+    // ★★★ 金額格式化防呆 ★★★
     function formatMoney(num) {
         if (!num) return '0';
-        return parseInt(num).toLocaleString();
+        const n = parseInt(String(num).replace(/,/g, ''), 10);
+        if (isNaN(n)) return '0';
+        return n.toLocaleString();
     }
 
     function saveRecord() {
@@ -427,8 +430,6 @@
         renderTabs(); 
         renderTable();
         resetForm();
-        
-        // ★★★ 觸發雲端儲存 ★★★
         saveToCloud();
     }
 
@@ -468,7 +469,6 @@
             salesData.splice(index, 1);
             renderTabs(); 
             renderTable();
-            // ★★★ 觸發雲端儲存 ★★★
             saveToCloud();
         }
     }
@@ -488,12 +488,10 @@
             currentTab = 'ALL';
             renderTabs();
             renderTable();
-            // ★★★ 觸發雲端儲存 (會把空陣列傳上去，等於清空) ★★★
             saveToCloud();
         }
     }
     
-    // 匯出功能保留，當作手動備份用
     function exportToCSV() {
         let csvContent = "\uFEFF"; 
         csvContent += headers.join(",") + "\n";
@@ -515,7 +513,6 @@
         link.click();
     }
 
-    // 匯入功能 (會把資料跟雲端合併)
     function importFromCSV(input) {
         const file = input.files[0];
         if (!file) return;
@@ -546,7 +543,6 @@
             renderTabs(); 
             renderTable();
             input.value = ''; 
-            // 匯入後同步到雲端
             saveToCloud();
         };
         reader.readAsText(file);
